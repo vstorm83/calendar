@@ -21,13 +21,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.exoplatform.commons.utils.PropertyManager;
+
 import org.exoplatform.calendar.CalendarUtils;
 import org.exoplatform.calendar.service.Attachment;
 import org.exoplatform.calendar.webui.UIFormDateTimePicker;
+import org.exoplatform.commons.utils.PropertyManager;
 import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 import org.exoplatform.webui.core.model.SelectItemOption;
+import org.exoplatform.webui.cssfile.CssClassUtils;
 import org.exoplatform.webui.form.UIForm;
 import org.exoplatform.webui.form.UIFormInputInfo;
 import org.exoplatform.webui.form.UIFormInputWithActions;
@@ -93,7 +95,7 @@ public class UIEventDetailTab extends UIFormInputWithActions {
     setActionField(FIELD_CATEGORY, addCategoryActions) ;
     
     addUIFormInput(new UIFormInputInfo(FIELD_ATTACHMENTS, FIELD_ATTACHMENTS, null)) ;
-    setActionField(FIELD_ATTACHMENTS, getUploadFileList()) ;
+    setActionField(FIELD_ATTACHMENTS, getAttachmentData()) ;
     addUIFormInput(new UIFormComboBox(FIELD_FROM_TIME, FIELD_FROM_TIME, options));
     addUIFormInput(new UIFormComboBox(FIELD_TO_TIME, FIELD_TO_TIME,  options));
     addUIFormInput(new UIFormDateTimePicker(FIELD_FROM, FIELD_FROM, new Date(), false));
@@ -123,27 +125,38 @@ public class UIEventDetailTab extends UIFormInputWithActions {
     return (UIForm)getParent() ;
   }
   
-  public List<ActionData> getUploadFileList() throws Exception { 
-    List<ActionData> uploadedFiles = new ArrayList<ActionData>() ;
-    for(Attachment attachdata : attachments_) {
-      ActionData fileUpload = new ActionData() ;
+  /**
+   * used in groovy template
+   *
+   * @return
+   * @throws Exception
+   */
+  public List<ActionData> getAttachmentData() throws Exception {
+    List<ActionData> attachmentData = new ArrayList<ActionData>() ;
+    for (Attachment attachment : attachments_) {
+      FileActionData fileUpload = new FileActionData() ;
       fileUpload.setActionListener(UIEventForm.ACT_DOWNLOAD) ;
-      fileUpload.setActionParameter(attachdata.getId()) ;
+      fileUpload.setActionParameter(attachment.getId()) ;
       fileUpload.setActionType(ActionData.TYPE_LINK) ;
-      fileUpload.setCssIconClass("") ;
-      fileUpload.setActionName(attachdata.getName() + "-(" + CalendarUtils.convertSize(attachdata.getSize()) + ")" ) ;
+      fileUpload.setCssIconClass(CssClassUtils.getCSSClassByFileNameAndFileType(attachment.getName(), attachment.getMimeType(), null)) ;
+      fileUpload.setActionName(attachment.getName()) ;
+      fileUpload.setFileSize(CalendarUtils.convertSize(attachment.getSize()));
       fileUpload.setShowLabel(true) ;
-      uploadedFiles.add(fileUpload) ;
-      ActionData removeAction = new ActionData() ;
+
+      attachmentData.add(fileUpload) ;
+
+      FileActionData removeAction = new FileActionData() ;
       removeAction.setActionListener(UIEventForm.ACT_REMOVE) ;
       removeAction.setActionName(UIEventForm.ACT_REMOVE);
-      removeAction.setActionParameter(attachdata.getId());
+      removeAction.setActionParameter(attachment.getId());
       removeAction.setActionType(ActionData.TYPE_ICON) ;
       removeAction.setCssIconClass("uiIconDelete uiIconLightGray");
       removeAction.setBreakLine(true) ;
-      uploadedFiles.add(removeAction) ;
+
+      attachmentData.add(removeAction) ;
     }
-    return uploadedFiles ;
+
+    return attachmentData;
   }
 
   public void addToUploadFileList(Attachment attachfile) {
@@ -153,7 +166,7 @@ public class UIEventDetailTab extends UIFormInputWithActions {
     attachments_.remove(attachfile);
   }  
   public void refreshUploadFileList() throws Exception {
-    setActionField(FIELD_ATTACHMENTS, getUploadFileList()) ;
+    setActionField(FIELD_ATTACHMENTS, getAttachmentData()) ;
   }
   protected List<Attachment> getAttachments() { 
     return attachments_ ;
@@ -183,10 +196,12 @@ public class UIEventDetailTab extends UIFormInputWithActions {
     actionField_.put(fieldName, actions) ;
   }
   public List<ActionData> getActionField(String fieldName) {return actionField_.get(fieldName) ;}
+
   @Override
   public void processRender(WebuiRequestContext arg0) throws Exception {
     super.processRender(arg0);
   }
+
   public UIFormComboBox getUIFormComboBox (String id) {
     return findComponentById(id);
   }
@@ -202,5 +217,18 @@ public class UIEventDetailTab extends UIFormInputWithActions {
 	  } catch (Exception e) {
 		return 2;
 	}
+  }
+
+
+  public static class FileActionData extends ActionData {
+    private static final long serialVersionUID = 1L;
+
+    private String fileSize;
+
+    public void setFileSize(String size) {
+      fileSize = size;
+    }
+
+    public String getFileSize() { return fileSize; }
   }
 }
