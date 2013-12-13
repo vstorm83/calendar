@@ -609,6 +609,15 @@ public class UIEventForm extends UIFormTabPane implements UIPopupComponent, UISe
     UIFormComboBox timeField = eventDetailTab.getUIFormComboBox(UIEventDetailTab.FIELD_TO_TIME) ;
     return UITaskForm.getToDate(getEventAllDate(), dateFormat, toField.getValue(), timeFormat, timeField.getValue());
   }
+
+  protected Date getEventToDate() throws Exception {
+    CalendarSetting calendarSetting = CalendarUtils.getCurrentUserCalendarSetting();
+    UIEventDetailTab eventDetailTab =  getChildById(TAB_EVENTDETAIL) ;
+    UIFormDateTimePicker toField = eventDetailTab.getChildById(UIEventDetailTab.FIELD_TO) ;
+    UIFormComboBox timeField = eventDetailTab.getUIFormComboBox(UIEventDetailTab.FIELD_TO_TIME) ;
+    return UITaskForm.getToDate(getEventAllDate(), calendarSetting.getDateFormat(), toField.getValue(), calendarSetting.getTimeFormat(), timeField.getValue());
+  }
+
   protected void setEventToDate(Date date,String dateFormat, String timeFormat) {
     UIEventDetailTab eventDetailTab =  getChildById(TAB_EVENTDETAIL) ;
     UIEventAttenderTab eventAttenderTab = getChildById(TAB_EVENTATTENDER) ;
@@ -1865,7 +1874,7 @@ public class UIEventForm extends UIFormTabPane implements UIPopupComponent, UISe
       uiInvitationContainer.getChild(UIPopupAction.class).getChild(UIPopupWindow.class).setId("UIPopupWindow");
       UIInvitationForm uiInvitationForm = uiInvitationContainer.addChild(UIInvitationForm.class, null, null);
       uiInvitationForm.setInvitationMsg(uiForm.invitationMsg_) ;
-      uiForm.participantList_ = new String("");
+      uiForm.participantList_ = "";
       uiInvitationForm.setParticipantValue(uiForm.participantList_) ;
       uiPopupAction.activate(uiInvitationContainer, 500, 0, true);
       event.getRequestContext().addUIComponentToUpdateByAjax(uiPopupAction) ;

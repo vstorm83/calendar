@@ -11,7 +11,7 @@
 	.uiGrid {
 		table-layout: fixed;
 		tr td {
-			border: 1px solid @tableBorder;
+			border: 1px solid @borderColor;
 			height: 26px;
 			padding: 2px 0;			
 			-moz-user-select: none;		
@@ -122,9 +122,6 @@
 			text-align: right;
 		}
 	}
-	.uiIconPlus {
-		margin-left: 3px;
-	}
 }
 
 
@@ -150,7 +147,7 @@
 	}
 }
 .reminderByEmail {
-	border-bottom: 1px solid @tableBorder;
+	border-bottom: 1px solid @borderColor;
 	padding: 10px;
 	margin: 0 -10px 10px;
 }
@@ -259,14 +256,10 @@
 
 /*=============================UIAttachFileForm===========================*/
 
-.UICalendarPortlet  ,.uiCalendarPortlet  {
-	.UIAttachFileForm {
-		background: @white;
-		.uploadButton {
-			text-align: center;
-		}
+.UICalendarPortlet {
+	.uiImportForm .uploadButton {
+		text-align: left;
 	}
-
 }
 
 /*==============================.uiQuickAddEvent=========================*/

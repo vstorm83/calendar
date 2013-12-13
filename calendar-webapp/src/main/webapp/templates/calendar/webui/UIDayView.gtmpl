@@ -78,7 +78,7 @@
 						if (ce.calType != CalendarUtils.PRIVATE_TYPE) isEditable = uicomponent.isEventEditable(ce);
 						else isEditable = "true";
 					%>
-						<div unselectable="on" class="eventContainerBorder eventBoxes ClearFix" calType="$ce.calType" eventCat="$ce.eventCategoryId" eventid="$ce.id" calid="$ce.calendarId" actionlink="$actionLink" isOccur="$isOccur" recurId="$recurId" isEditable="$isEditable">
+						<div unselectable="on" class="eventContainerBorder eventBoxes clearfix" calType="$ce.calType" eventCat="$ce.eventCategoryId" eventid="$ce.id" calid="$ce.calendarId" actionlink="$actionLink" isOccur="$isOccur" recurId="$recurId" isEditable="$isEditable">
 						  <input type="hidden" name="${ce.id}calType" value="$ce.calType" />
 						  <input type="hidden" name="${ce.id}calendarId" value="$ce.calendarId" />          
 						  <input type="hidden" name="${ce.id}startTime" value="" />
@@ -92,7 +92,9 @@
 						  <%if(!uicomponent.isSameDate(ce.getToDateTime(), uicomponent.calendar_.getTime())){%>
 							<div class="rightContinueEvent pull-right $color"><i class="uiIconMiniArrowRight uiIconWhite"></i></div>
 						  <%}%>
+
 						  <div class="eventContainer $color">
+                            <i class="uiIconCal<%=ce.getPriority()%>Priority" style="margin-right: 5px;"></i>
 							<%=ce.getSummary()%>
 						  </div>
 						</div>
