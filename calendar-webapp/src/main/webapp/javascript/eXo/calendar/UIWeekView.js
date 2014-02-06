@@ -133,7 +133,7 @@ UIWeekView.prototype.increaseWidth = function(contentContainer) {
   }
 
   gj(contentContainer).css("width", (widthOfTitleBar + 20));
-  var eventTable = gj(contentContainer).children("table.uiGrid")[0];
+  var eventTable = gj(contentContainer).children("table.uiTable")[0];
   gj(eventTable).css("width", widthOfTitleBar);
 };
 
@@ -154,7 +154,7 @@ UIWeekView.prototype.resizeHeight = function(contentContainer, originalHeight) {
 UIWeekView.prototype.resizeWidth = function(contentContainer) {
   var eventWeekBar = gj(contentContainer).siblings(".eventWeekBar")[0],
       resizedWidth = gj(eventWeekBar).width(),
-      eventTable   = gj(contentContainer).children("table.uiGrid")[0];
+      eventTable   = gj(contentContainer).children("table.uiTable")[0];
   
   gj(eventTable).css("width", resizedWidth);
   gj(contentContainer).css("width", (resizedWidth + 20));
@@ -766,7 +766,7 @@ UIWeekView.prototype.allDayDropCallback = function(evt) {
 UIWeekView.prototype.initAllday = function() {
     var UIWeekView = _module.UIWeekView ;
     var uiWeekView = document.getElementById("UIWeekView") ;
-    var uiWeekViewGridAllDay = gj(uiWeekView).find('table.UIGrid')[0]; 
+    var uiWeekViewGridAllDay = gj(uiWeekView).find('table.uiTable')[0]; 
     this.eventAlldayContainer = gj(uiWeekView).find('div.eventAlldayContainer');
     var eventAllday = new Array() ;
     for(var i = 0 ; i < this.eventAlldayContainer.length ; i ++) {

@@ -1,14 +1,17 @@
 /*=================UIEventAttenderTab========================*/
 .uiPopup {
-	.uiGrid.table {
+	.uiTable {
 		tr td, tr th {
 			padding: 8px 18px;
+		}
+		td {
+			border-left: 1px solid @borderColor;
 		}
 	}
 }
 
 .newEventAttendee {
-	.uiGrid {
+	.uiTable {
 		table-layout: fixed;
 		tr td {
 			border: 1px solid @borderColor;
@@ -124,7 +127,20 @@
 	}
 }
 
-
+.uiPopup {
+	.eventShare {
+	.uiFormGrid {
+		tbody > tr  > td{
+			padding: 8px 18px;
+		}
+		tbody > tr  > td + td {
+			padding-left: 18px;
+		}
+		
+	}
+}
+	
+}
 /*===================UIEventRemindersTab===========================*/
 .reminderByPopup ,.reminderByEmail{	
 	.selectboxSmall {
@@ -241,7 +257,7 @@
 /*=============================UIFeed===========================*/
 
 .feedTab {
-	.table {
+	.uiTable {
 		margin-bottom: 0;
 	}
 }

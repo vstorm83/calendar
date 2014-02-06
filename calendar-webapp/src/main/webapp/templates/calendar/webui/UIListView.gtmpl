@@ -54,7 +54,7 @@
         <button type="button" id="bts_close" class="close" style="padding-right: 15px;">x</button>
         <strong></strong>
     </div>
-    <table id="UIListUsers" class="uiGrid table  table-hover table-striped">
+    <table id="UIListUsers" class="uiTable uiTableHover uiTableStriped">
         <thead>
         <tr>
             <% if (!searchDisplay) { %>

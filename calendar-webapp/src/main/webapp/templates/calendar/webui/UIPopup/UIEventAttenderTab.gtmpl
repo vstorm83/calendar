@@ -53,7 +53,7 @@
               </div>
             </div>
           </div>
-          <table class="uiGrid" id="RowContainerDay" cellspacing="0" borderspacing="0" dateValue="<%=uicomponent.getDateValue()%>" exocallback="eXo.calendar.UICalendarPortlet.callbackSelectionX() ;">
+          <table class="uiTable" id="RowContainerDay" cellspacing="0" borderspacing="0" dateValue="<%=uicomponent.getDateValue()%>" exocallback="eXo.calendar.UICalendarPortlet.callbackSelectionX() ;">
             <tbody>
               <tr class="titleBar">
                 <td style="width:28%;">

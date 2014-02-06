@@ -63,7 +63,7 @@
 <div class="uiBox uiDayView">
 	<div class="title"><%_ctx.include("app:/templates/calendar/webui/UIHeaderBar.gtmpl");%></div>
 	<div class="eventAllDay">
-		<table class="uiGrid table ">
+		<table class="uiTable">
 			<tbody>
 				<tr>
 					<td class="center" style="width: 55px;"></td>
@@ -107,7 +107,7 @@
 	
 	<div class="eventDayContainer mainWorkingPanel" style="position:relative;">
 		<div class="eventDayContent">
-			<table class="uiGrid table rounded-corners" id="UIDayViewGrid" cellspacing="0" borderspacing="0" cellpadding="0" style="table-layout: fixed;">
+			<table class="uiTable uiTableRounded" id="UIDayViewGrid" cellspacing="0" borderspacing="0" cellpadding="0" style="table-layout: fixed;">
 				<tbody>
 				  <tr>
 					<td style="width: 55px">

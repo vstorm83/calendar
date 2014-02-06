@@ -2520,7 +2520,7 @@
         if (typeof(container) == "string")
             container = document.getElementById(container);
         var dateAll = gj(container).find("input.checkbox")[1];
-        var table = gj(container).find('table.uiGrid')[0];
+        var table = gj(container).find('table.uiTable')[0];
         var tr = gj(table).find("tr");
         var firstTr = tr[1];
         this.busyCell = gj(firstTr).find("td").slice(1);

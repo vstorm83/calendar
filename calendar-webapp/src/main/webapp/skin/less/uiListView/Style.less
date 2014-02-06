@@ -3,8 +3,8 @@
 
 .uiListView,.uiTaskView{
 	padding: 11px;
-	.uiGrid.table{
-		border: solid 1px @borderColor;
+	.uiTable{
+		border: solid 1px @tableBorder;
 		th{
 			padding: 5px 10px;
 			.uiIconMiniArrowDown,.uiIconMiniArrowUp {
@@ -19,6 +19,7 @@
 		}
 		td{
 			padding: 10px;
+			border-left: solid 1px @tableBorder;
 		}
 	}
 	.pagination {

@@ -249,7 +249,7 @@ Utils.prototype.show = function(obj, evt){
 Utils.prototype.showHidePane = function(clickobj, beforeobj, afterobj) {
   var container = gj(clickobj).parents('.SpliterContainer')[0]; 
   var areas = gj(container).find('div.spliterResizableListArea'); 
-  var uiGrid = gj(areas[1]).find('table.UIGrid')[0]; 
+  //var uiGrid = gj(areas[1]).find('table.UIGrid')[0]; 
   var uiPreview = gj(areas[1]).parents(".UIPreview")[0] ;
   if(areas.length < 2) return ;
 	if(areas[0].style.display != "none") {
