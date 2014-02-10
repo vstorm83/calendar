@@ -10,9 +10,9 @@
 <div class="form-horizontal resizable">
   <div class="control-group">
     <div class="controls-full">
-      <div id="confirm" class="confirm media">
+      <div id="confirm" class="confirm uiMedia">
         <i class="uiIconQuestion uiIconBlue pull-left"></i>
-        <div class="media-body">
+        <div class="uiMediaBody">
         <%=uicomponent.getConfirmMessage()%>
         </div>
       </div>
