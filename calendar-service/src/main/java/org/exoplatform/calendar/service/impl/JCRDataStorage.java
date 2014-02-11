@@ -3057,7 +3057,7 @@ public class JCRDataStorage implements DataStorage {
             fromDate, toDate, calendarIds, filteredCalendars) ;
         latch.countDown();
       } catch (Exception e) {
-        // log.debug("Exception: " + e.getLocalizedMessage());
+        if(log.isDebugEnabled()) log.debug("Exception: " + e.getLocalizedMessage());
       }
     }
   }
@@ -4843,7 +4843,6 @@ public class JCRDataStorage implements DataStorage {
       }
     } catch (RepositoryException e) {
       if (log.isDebugEnabled()) log.debug(e);
-      e.printStackTrace();
     } catch (Exception e) {
       if (log.isDebugEnabled()) log.debug(e);
     }
