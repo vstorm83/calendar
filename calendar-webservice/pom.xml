@@ -89,7 +89,13 @@
         <exclusion>          
           <groupId>xerces</groupId>
           <artifactId>xmlParserAPIs</artifactId>
-        </exclusion> 
+        </exclusion>
+        <!-- Remove this after social project finish upgrade JCR 1.16.x -->
+        <exclusion>          
+          <groupId>org.exoplatform.social</groupId>
+          <artifactId>social-component-core</artifactId>
+        </exclusion>
+        <!-- end remove -->
       </exclusions>
     </dependency>
     <dependency>
@@ -132,16 +138,6 @@
         </exclusion>      
       </exclusions>
     </dependency>
-      <!-- remove it after migration to jcr 1.16.x-->
-      <dependency>
-          <groupId>org.exoplatform.kernel</groupId>
-          <artifactId>exo.kernel.component.ext.cache.impl.infinispan.v5</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>org.exoplatform.jcr</groupId>
-          <artifactId>exo.jcr.component.core.impl.infinispan.v5</artifactId>
-      </dependency>
-      <!-- End remove-->
     <dependency>
       <groupId>org.exoplatform.kernel</groupId>
       <artifactId>exo.kernel.commons</artifactId>
