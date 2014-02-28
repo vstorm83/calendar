@@ -59,6 +59,8 @@ public class EventQuery {
   private String             queryType          = Query.XPATH;
 
   private long               limitedItems       = 0;
+  
+  private boolean returnSize = false;
 
   public String getNodeType() {
     return nodeType;
@@ -456,5 +458,13 @@ public class EventQuery {
         }
     }
     return buffer.toString();
+  }
+
+  public void setReturnSize(boolean returnSize) {
+    this.returnSize = returnSize;
+  }
+  
+  public boolean isReturnSize() {
+    return returnSize;
   }
 }
