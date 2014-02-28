@@ -20,24 +20,25 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.Row;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.TimeZone;
+
 import org.apache.commons.collections.map.HashedMap;
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.CalendarService;
-import org.exoplatform.calendar.service.CalendarSetting;
 import org.exoplatform.calendar.service.EventQuery;
 import org.exoplatform.calendar.service.GroupCalendarData;
 import org.exoplatform.calendar.service.MultiListAccess;
@@ -173,12 +174,12 @@ public class CalendarSearchServiceConnector extends SearchServiceConnector {
       
       Node uHome = jcrDataStorage.getUserCalendarHome(userId);
       EventQuery uEventQuery = createQuery(dataType, query, sort, order, uHome.getPath(), uCals.toArray(new String[uCals.size()]), null);
-      listAccess.add(new EventListAccess(jcrDataStorage, uEventQuery));
+      listAccess.add(new EventRowListAccess((EventDAOImpl)calendarService_.getEventDAO(), uEventQuery));
       
       if (gCals.size() > 0) {
         Node gHome = jcrDataStorage.getPublicCalendarHome();
         EventQuery gEventQuery = createQuery(dataType, query, sort, order, gHome.getPath(), gCals.toArray(new String[gCals.size()]), readOnlyCalendars);
-        listAccess.add(new EventListAccess(jcrDataStorage, gEventQuery));        
+        listAccess.add(new EventRowListAccess((EventDAOImpl)calendarService_.getEventDAO(), gEventQuery));
       }
       
       for (String u : sCals.keySet()) {
@@ -190,7 +191,7 @@ public class CalendarSearchServiceConnector extends SearchServiceConnector {
         
         Node sHome = jcrDataStorage.getUserCalendarHome(u);
         EventQuery sEventQuery = createQuery(dataType, query, sort, order, sHome.getPath(), ids, readOnlyCalendars);
-        listAccess.add(new EventListAccess(jcrDataStorage, sEventQuery));
+        listAccess.add(new EventRowListAccess((EventDAOImpl)calendarService_.getEventDAO(), sEventQuery));
       }
 
       Object[] rows = listAccess.load(offset, limit);
@@ -350,7 +351,7 @@ public class CalendarSearchServiceConnector extends SearchServiceConnector {
     }
   }
 
-  private long buildScore(Object iter){
+  private long buildScore(Object iter) {
     try {
       if(iter instanceof Row){
         Row row = (Row) iter;

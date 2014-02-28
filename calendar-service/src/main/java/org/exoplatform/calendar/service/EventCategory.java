@@ -30,7 +30,8 @@ import org.exoplatform.webui.application.WebuiRequestContext;
  *          hung.nguyen@exoplatform.com
  * Jul 11, 2007  
  */
-public class EventCategory {
+public class EventCategory {  
+
   private String  id;
 
   private String  name;
