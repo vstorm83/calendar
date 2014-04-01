@@ -379,6 +379,11 @@ public class CalendarServiceImpl implements CalendarService, Startable {
     return storage_.searchHightLightEvent(username, eventQuery, publicCalendarIds);
   }
 
+  public List<Map<Integer, String>> searchHightLightEventSQL(String username, EventQuery eventQuery,
+                                                             String[] privateCalendars, String[] publicCalendars) throws Exception {
+    return storage_.searchHightLightEventSQL(username, eventQuery, privateCalendars, publicCalendars);
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -404,8 +409,17 @@ public class CalendarServiceImpl implements CalendarService, Startable {
     else return new ArrayList<CalendarEvent>();
   }
 
+  @Override
   public List<CalendarEvent> getAllNoRepeatEvents(String username, EventQuery eventQuery, String[] publicCalendarIds) throws Exception {
     return storage_.getAllNoRepeatEvents(username, eventQuery, publicCalendarIds);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public List<CalendarEvent> getAllNoRepeatEventsSQL(String username, EventQuery eventQuery, String[] privateCalendars,
+                                                     String[] publicCalendars, List<String> emptyCalendars) throws Exception {
+    return storage_.getAllNoRepeatEventsSQL(username, eventQuery, privateCalendars, publicCalendars, emptyCalendars);
   }
 
   /**
@@ -911,11 +925,18 @@ public class CalendarServiceImpl implements CalendarService, Startable {
     return storage_.searchHighlightRecurrenceEvent(username, eventQuery, publicCalendarIds, timezone);
   }
 
-  public List<CalendarEvent> getHighLightOriginalRecurrenceEvents(String username,
-                                                                  java.util.Calendar from,
-                                                                  java.util.Calendar to,
-                                                                  String[] publicCalendarIds) throws Exception {
+  public List<Map<Integer, String>> searchHighlightRecurrenceEventSQL(String username, EventQuery eventQuery, String timezone,
+                                                                String[] privateCalendars, String[] publicCalendars) throws Exception {
+    return storage_.searchHighlightRecurrenceEventSQL(username, eventQuery, timezone, privateCalendars, publicCalendars);
+  }
+
+  public List<CalendarEvent> getHighLightOriginalRecurrenceEvents(String username, java.util.Calendar from, java.util.Calendar to, String[] publicCalendarIds) throws Exception {
     return storage_.getHighLightOriginalRecurrenceEvents(username, from, to, publicCalendarIds);
+  }
+
+  public List<CalendarEvent> getHighLightOriginalRecurrenceEventsSQL(String username, java.util.Calendar from, java.util.Calendar to, EventQuery eventQuery,
+                                                                     String[] privateCalendars, String[] publicCalendars, List<String> emptyCalendars) throws Exception {
+    return storage_.getHighLightOriginalRecurrenceEventsSQL(username, from, to, eventQuery, privateCalendars, publicCalendars, emptyCalendars);
   }
 
   /**
