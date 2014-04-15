@@ -29,6 +29,8 @@ import org.exoplatform.services.jcr.util.IdGenerator;
  */
 public class Calendar implements Serializable {
 
+  private static final long serialVersionUID = -1146183554878674102L;
+
   public static final int      TYPE_PRIVATE  = 0;
 
   public static final int      TYPE_SHARED   = 1;

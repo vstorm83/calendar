@@ -17,28 +17,29 @@
 
 package org.exoplatform.calendar.ws.bean;
 
-import org.exoplatform.webservice.cs.bean.End;
-
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Date;
+
+import org.exoplatform.webservice.cs.bean.End;
 
 public class RepeatResource implements Serializable {
   private static final long serialVersionUID = 5586869269014670514L;
 
-  boolean                   enabled;
+  private boolean                   enabled;
 
-  String                    type;
+  private String                    type;
 
-  int                       every;
+  private int                       every;
 
-  String                    repeatOn;
+  private String                    repeatOn;
 
-  String                    repeateBy;
+  private String                    repeateBy;
 
-  String[]                  exclude;
+  private String[]                  exclude;
 
-  End                       end;
+  private End                       end;
+  
+  public RepeatResource() {}
 
   public RepeatResource(boolean enabled,
                         String type,
@@ -57,4 +58,59 @@ public class RepeatResource implements Serializable {
     this.end = end;
   }
 
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  public int getEvery() {
+    return every;
+  }
+
+  public void setEvery(int every) {
+    this.every = every;
+  }
+
+  public String getRepeatOn() {
+    return repeatOn;
+  }
+
+  public void setRepeatOn(String repeatOn) {
+    this.repeatOn = repeatOn;
+  }
+
+  public String getRepeateBy() {
+    return repeateBy;
+  }
+
+  public void setRepeateBy(String repeateBy) {
+    this.repeateBy = repeateBy;
+  }
+
+  public String[] getExclude() {
+    return exclude;
+  }
+
+  public void setExclude(String[] exclude) {
+    this.exclude = exclude;
+  }
+
+  public End getEnd() {
+    return end;
+  }
+
+  public void setEnd(End end) {
+    this.end = end;
+  }
 }

@@ -42,10 +42,12 @@ public class CalendarResource extends Resource {
   private String publicURL;
   private String privateURL;
   private String icsURL;
+  
+  public CalendarResource() {}
 
   public CalendarResource(Calendar data) {
     setId(data.getId());
-    setHref(new StringBuffer(CAL_BASE_URI).append(CALENDAR_URI).append(data.getId()).toString());
+    setHref(new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI).append(data.getId()).toString());
     name = data.getName();
     description = data.getDescription();
     type = String.valueOf(data.getCalType());
@@ -53,13 +55,14 @@ public class CalendarResource extends Resource {
     color = data.getCalendarColor();
     owner = data.getCalendarOwner();
     
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     if(data.getViewPermission() != null)
     for (String s: data.getViewPermission()) {
       sb.append(s).append(Utils.SEMICOLON);
     }
     viewPermision = sb.toString();
-    sb = new StringBuffer();
+    
+    sb = new StringBuilder();
     if(data.getEditPermission() != null)
     for (String s: data.getEditPermission()) {
       sb.append(s).append(Utils.SEMICOLON);
@@ -68,7 +71,7 @@ public class CalendarResource extends Resource {
     groups = data.getGroups();
     publicURL = data.getPublicUrl();
     privateURL = data.getPrivateUrl();
-    icsURL = data.getCalendarPath();
+    icsURL = new StringBuilder(CAL_BASE_URI).append(getId()).append(icsURL).toString();
   }
 
   public String getName() {
@@ -83,43 +86,87 @@ public class CalendarResource extends Resource {
     return description;
   }
 
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
   public String getType() {
     return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
   }
 
   public String getTimeZone() {
     return timeZone;
   }
 
+  public void setTimeZone(String timeZone) {
+    this.timeZone = timeZone;
+  }
+
   public String getColor() {
     return color;
+  }
+
+  public void setColor(String color) {
+    this.color = color;
   }
 
   public String getOwner() {
     return owner;
   }
 
+  public void setOwner(String owner) {
+    this.owner = owner;
+  }
+
   public String getViewPermision() {
     return viewPermision;
+  }
+
+  public void setViewPermision(String viewPermision) {
+    this.viewPermision = viewPermision;
   }
 
   public String getEditPermission() {
     return editPermission;
   }
 
+  public void setEditPermission(String editPermission) {
+    this.editPermission = editPermission;
+  }
+
   public String[] getGroups() {
     return groups;
+  }
+
+  public void setGroups(String[] groups) {
+    this.groups = groups;
   }
 
   public String getPublicURL() {
     return publicURL;
   }
 
+  public void setPublicURL(String publicURL) {
+    this.publicURL = publicURL;
+  }
+
   public String getPrivateURL() {
     return privateURL;
   }
 
+  public void setPrivateURL(String privateURL) {
+    this.privateURL = privateURL;
+  }
+
   public String getIcsURL() {
     return icsURL;
+  }
+
+  public void setIcsURL(String icsURL) {
+    this.icsURL = icsURL;
   }
 }

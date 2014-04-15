@@ -23,12 +23,8 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.HEADER_LINK;
 import static org.exoplatform.calendar.ws.CalendarRestApi.ICS_URI;
 
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
-import org.exoplatform.calendar.service.Utils;
 import org.exoplatform.calendar.ws.bean.CalendarResource;
 import org.exoplatform.calendar.ws.bean.CollectionResource;
 import org.exoplatform.common.http.HTTPMethods;
@@ -85,7 +81,7 @@ public class TestCalendarRestApi extends TestRestApi {
     cal.setName("myCal") ;
     cal.setCalendarOwner("root");
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(cal);
+    JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal));
     byte[] data = json.toString().getBytes("UTF-8");
     
     h.putSingle("content-type", "application/json");
@@ -106,7 +102,7 @@ public class TestCalendarRestApi extends TestRestApi {
     cal = new Calendar() ;
     cal.setName("myCal") ;
     cal.setGroups(new String[] {"/platform/users"});
-    json = generatorImpl.createJsonObject(cal);
+    json = generatorImpl.createJsonObject(new CalendarResource(cal));
     data = json.toString().getBytes("UTF-8");
     //
     login("demo", "/platform/users:member");
@@ -117,7 +113,7 @@ public class TestCalendarRestApi extends TestRestApi {
     
     //demo can't create cal for group that he's not in
     cal.setGroups(new String[] {"/platform/admin"});
-    json = generatorImpl.createJsonObject(cal);
+    json = generatorImpl.createJsonObject(new CalendarResource(cal));
     data = json.toString().getBytes("UTF-8");
     response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
@@ -165,7 +161,7 @@ public class TestCalendarRestApi extends TestRestApi {
     cal.setName("myCal") ;
     cal.setCalendarOwner("root");
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(cal);
+    JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal));
     byte[] data = json.toString().getBytes("UTF-8");
 
     h = new MultivaluedMapImpl();

@@ -17,12 +17,14 @@
 
 package org.exoplatform.calendar.ws.bean;
 
+import static org.exoplatform.calendar.ws.CalendarRestApi.CALENDAR_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.FEED_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.RSS_URI;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import org.exoplatform.calendar.service.FeedData;
 
@@ -33,18 +35,30 @@ public class FeedResource<T extends Serializable> extends Resource {
 
   private String                    rss;
 
-  private T[]                  calendars;
+  private Collection<T>                  calendars;
 
-  public FeedResource(FeedData data, Collection<String> calendars) {
+  /**
+   * This field is introduced for user can update calendars in Feed
+   * It's because calendars field must readonly,
+   * it's a workaround for the restriction of rest framework (it can not unmarshall from JSON string into generic field)
+   */
+  private String[] calendarIds = null;
+
+  public FeedResource() {}
+  
+  public FeedResource(FeedData data, String[] calendarids) {
     setId(data.getFeed());
-    setHref(new StringBuffer(CAL_BASE_URI).append(FEED_URI).append(data.getTitle()).toString());
+    setHref(new StringBuilder(CAL_BASE_URI).append(FEED_URI).append(data.getTitle()).toString());
     name = data.getTitle();
-    rss = new StringBuffer(CAL_BASE_URI).append(FEED_URI)
+    rss = new StringBuilder(CAL_BASE_URI).append(FEED_URI)
                                         .append(data.getTitle())
                                         .append(RSS_URI)
                                         .toString();
-    if (calendars != null)
-      this.calendars = (T[]) calendars.toArray(new String[] {});
+    calendars = new LinkedList<T>();
+    for (String id : calendarids) {
+      calendars.add((T) new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI).append(id).toString());      
+    }
+    this.calendarIds = calendarids;
   }
 
   public String getName() {
@@ -54,17 +68,36 @@ public class FeedResource<T extends Serializable> extends Resource {
   public void setName(String name) {
     this.name = name;
   }
-  
+
   public String getRss() {
-    return this.rss;
+    return rss;
   }
-  
-  public T[] getCalendars() {
-    return this.calendars;
+
+  public void setRss(String rss) {
+    this.rss = rss;
   }
-  
-  public FeedResource<T> setCalendars(T[] calendars) {
+
+  public Collection<T> getCalendars() {
+    return calendars;
+  }
+
+  /**
+   * Because rest framework can not unmarshall from JSON if object contain generic field
+   * So, we must make #calendars field is readonly with rest-framework by rename setter method to #setCals
+   * And we introduce field #calendarIds, that enable user can update calendars in Feed
+   * @param calendars
+   * @return this
+   */
+  public FeedResource<T> setCals(Collection<T> calendars) {
     this.calendars = calendars;
     return this;
+  }
+
+  public String[] getCalendarIds() {
+    return calendarIds;
+  }
+
+  public void setCalendarIds(String[] calendarIds) {
+    this.calendarIds = calendarIds;
   }
 }

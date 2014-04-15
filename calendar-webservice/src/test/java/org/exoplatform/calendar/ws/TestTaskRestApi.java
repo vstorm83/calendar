@@ -21,8 +21,8 @@ package org.exoplatform.calendar.ws;
 import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.TASK_URI;
 
-import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
+import org.exoplatform.calendar.ws.bean.CalendarResource;
 import org.exoplatform.calendar.ws.bean.Resource;
 import org.exoplatform.calendar.ws.bean.TaskResource;
 import org.exoplatform.common.http.HTTPMethods;
@@ -84,7 +84,7 @@ public class TestTaskRestApi extends AbstractTestEventRestApi {
     assertNotNull(calR0);
     assertEquals(uEvt.getId(), calR0.getId());
     
-    TaskResource<Calendar> calR1 = (TaskResource<Calendar>) response.getEntity();
+    TaskResource<CalendarResource> calR1 = (TaskResource<CalendarResource>) response.getEntity();
     assertNotNull(calR1.getCalendar());
     assertEquals(calR1.getCalendar().getName(), userCalendar.getName());
   }

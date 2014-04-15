@@ -24,13 +24,16 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.RSS_URI;
 
 import javax.ws.rs.core.MediaType;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
+import org.exoplatform.calendar.service.FeedData;
 import org.exoplatform.calendar.service.RssData;
 import org.exoplatform.calendar.service.Utils;
+import org.exoplatform.calendar.ws.bean.CalendarResource;
 import org.exoplatform.calendar.ws.bean.FeedResource;
 import org.exoplatform.common.http.HTTPMethods;
 import org.exoplatform.common.http.HTTPStatus;
@@ -77,8 +80,7 @@ public class TestFeedRestApi extends TestRestApi {
   public void setUp() throws Exception {
     super.setUp();
     
-    CalendarEvent calEvent = this.createEvent(this.userCalendar);
-    
+    CalendarEvent calEvent = this.createEvent(this.userCalendar);    
     calendarService.saveUserEvent("root", userCalendar.getId(), calEvent, true);
 
     LinkedHashMap<String, Calendar> calendars = new LinkedHashMap<String, Calendar>();
@@ -87,9 +89,8 @@ public class TestFeedRestApi extends TestRestApi {
     calEvent.setId("Event" + IdGenerator.generate());
     calendarService.savePublicEvent(groupCalendar.getId(), calEvent, true);
     calendars.put(Utils.PUBLIC_TYPE + Utils.COLON + groupCalendar.getId(), groupCalendar);
-
-    rssData = new RssData();
     
+    rssData = new RssData();    
     rssData.setName(calendarFeedNane + Utils.RSS_EXT);
     String url = "http://localhost:80/rest/calendar/feed/"+calendarFeedNane ;
     rssData.setUrl(url);
@@ -115,7 +116,7 @@ public class TestFeedRestApi extends TestRestApi {
     FeedResource calR = (FeedResource)response.getEntity();
     assertNotNull(calR);
     assertEquals(rssData.getTitle(), calR.getName());
-    assertTrue(calR.getCalendars()[0] instanceof String);
+    assertTrue(calR.getCalendars().iterator().next() instanceof String);
     
     //get fields "name", "calendars"
     response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?fields=name,calendars", baseURI, h, null, writer);
@@ -124,7 +125,7 @@ public class TestFeedRestApi extends TestRestApi {
     //expand "calendars"
     response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars", baseURI, h, null, writer);
     calR = (FeedResource)response.getEntity();
-    assertTrue(calR.getCalendars()[0] instanceof Calendar);
+    assertTrue(calR.getCalendars().iterator().next() instanceof CalendarResource);
     
     //jsonp
     response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?fields=name&jsonp=callback", baseURI, h, null, writer);
@@ -134,17 +135,20 @@ public class TestFeedRestApi extends TestRestApi {
     response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?jsonp=callback", baseURI, h, null, writer);
     data = (String) response.getEntity();
     StringBuilder sb = new StringBuilder("callback({\"name\":\"Calendar_Feed\"");
-    sb.append(",\"calendars\":[\"").append(userCalendar.getId()).append("\",\"").append(groupCalendar.getId()).append("\"]");
+    sb.append(",\"calendars\":[\"/calendar/calendars/").append(userCalendar.getId()).append("\",\"/calendar/calendars/").append(groupCalendar.getId()).append("\"]");
+    sb.append(",\"calendarIds\":[\"").append(userCalendar.getId()).append("\",\"").append(groupCalendar.getId()).append("\"]");
     sb.append(",\"rss\":\"/calendar/feeds/Calendar_Feed/rss\",\"id\":\"Calendar_Feed\",\"href\":\"/calendar/feeds/Calendar_Feed\"");
     sb.append("});");
+    System.out.println(data);
     assertEquals(sb.toString(), data);
 
     response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars(offset:0,limit:1)&jsonp=callback", baseURI, h, null, writer);
     data = (String) response.getEntity();
     JsonGeneratorImpl generator = new JsonGeneratorImpl();
-    JsonValue value = generator.createJsonObject(userCalendar);
+    JsonValue value = generator.createJsonObject(new CalendarResource(userCalendar));
     sb = new StringBuilder("callback({\"name\":\"Calendar_Feed\"");
     sb.append(",\"calendars\":[").append(value).append("]");
+    sb.append(",\"calendarIds\":[\"").append(userCalendar.getId()).append("\",\"").append(groupCalendar.getId()).append("\"]");
     sb.append(",\"rss\":\"/calendar/feeds/Calendar_Feed/rss\",\"id\":\"Calendar_Feed\",\"href\":\"/calendar/feeds/Calendar_Feed\"");
     sb.append("});");
     assertEquals(sb.toString(), data);
@@ -156,9 +160,14 @@ public class TestFeedRestApi extends TestRestApi {
   }
 
   public void testUpdateFeedById() throws Exception {
-
+    FeedData feedData = new FeedData();
+    feedData.setTitle(calendarFeedNane);
+    feedData.setUrl(rssData.getUrl());    
+    FeedResource<String> rs = new FeedResource<String>(feedData, new String[]{userCalendar.getId()});
+    //FeedResource<String> rs = new FeedResource<String>(feedData, null);
+    
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(rssData);
+    JsonValue json = generatorImpl.createJsonObject(rs);
 
     byte[] data = json.toString().getBytes("UTF-8");
     h = new MultivaluedMapImpl();

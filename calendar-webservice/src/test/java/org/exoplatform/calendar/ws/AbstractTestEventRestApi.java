@@ -24,6 +24,7 @@ import java.util.Collection;
 
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.ws.bean.CollectionResource;
+import org.exoplatform.calendar.ws.bean.EventResource;
 import org.exoplatform.calendar.ws.bean.Resource;
 import org.exoplatform.common.http.HTTPMethods;
 import org.exoplatform.common.http.HTTPStatus;
@@ -245,8 +246,9 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     uEvt.setEventType(eventType);
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
 
+    EventResource eventResource = new EventResource(uEvt);
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(uEvt);
+    JsonValue json = generatorImpl.createJsonObject(eventResource);
 
     byte[] data = json.toString().getBytes("UTF-8");
     h = new MultivaluedMapImpl();
@@ -270,14 +272,6 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     uEvt.setEventType(eventType);
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
 
-    JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(uEvt);
-
-    byte[] data = json.toString().getBytes("UTF-8");
-    h = new MultivaluedMapImpl();
-    h.putSingle("content-type", "application/json");
-    h.putSingle("content-length", "" + data.length);
-
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
@@ -286,7 +280,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     
     login("root");
     //
-    response = service(HTTPMethods.DELETE, uri + uEvt.getId(), baseURI, h, data, writer);
+    response = service(HTTPMethods.DELETE, uri + uEvt.getId(), baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertNull(calendarService.getEventById(uEvt.getId()));
   }  

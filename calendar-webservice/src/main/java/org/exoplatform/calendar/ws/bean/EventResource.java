@@ -42,7 +42,7 @@ public class EventResource<T extends Serializable> extends Resource {
   private T                    calendar;
   private String[]                  categories;
   private String                    location;
-  private int                       priority;
+  private String                       priority;
   private RepeatResource            repeat;
   private String                    recurrenceId;
   private String                    originalEvent;
@@ -52,33 +52,23 @@ public class EventResource<T extends Serializable> extends Resource {
   private String                    privacy;
   private String                    availability;  
 
+  public EventResource() {}
+  
   public EventResource(CalendarEvent data) {
     setId(data.getId());
-    setHref(new StringBuffer(CAL_BASE_URI).append(EVENT_URI).append(data.getId()).toString());
+    setHref(new StringBuilder(CAL_BASE_URI).append(EVENT_URI).append(data.getId()).toString());
     subject = data.getSummary();
     description = data.getDescription();
     from = data.getFromDateTime();
     to = data.getToDateTime();
-    calendar = (T) new StringBuffer(CAL_BASE_URI).append(CALENDAR_URI)
+    calendar = (T) new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI)
                                              .append(data.getCalendarId())
                                              .toString();
-    categories = new String[] { new StringBuffer(CAL_BASE_URI).append(CATEGORY_URI)
+    categories = new String[] { new StringBuilder(CAL_BASE_URI).append(CATEGORY_URI)
                                                               .append(data.getEventCategoryId())
                                                               .toString() };
     location = data.getLocation();
-    int priority = 0;
-    for (int i = 0; i < CalendarEvent.PRIORITY.length; i++) {
-      if (data.getPriority().equalsIgnoreCase(CalendarEvent.PRIORITY[i])) {
-        if (i == CalendarEvent.PRI_MEDIUM) {
-          priority = 5;
-        } else if (i == CalendarEvent.PRI_LOW) {
-          priority = 6;
-        } else {
-          priority = i;
-        }
-      }
-    }
-    this.priority = priority;
+    this.priority = data.getPriority();
 
     End end;
     if (data.getRepeatUntilDate() != null) {
@@ -128,6 +118,30 @@ public class EventResource<T extends Serializable> extends Resource {
     this.subject = subject;
   }
 
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public Date getFrom() {
+    return from;
+  }
+
+  public void setFrom(Date from) {
+    this.from = from;
+  }
+
+  public Date getTo() {
+    return to;
+  }
+
+  public void setTo(Date to) {
+    this.to = to;
+  }
+
   public T getCalendar() {
     return calendar;
   }
@@ -137,60 +151,91 @@ public class EventResource<T extends Serializable> extends Resource {
     return this;
   }
 
-  public String getDescription() {
-    return description;
-  }
-
-  public Date getFrom() {
-    return from;
-  }
-
-  public Date getTo() {
-    return to;
-  }
-
   public String[] getCategories() {
     return categories;
+  }
+
+  public void setCategories(String[] categories) {
+    this.categories = categories;
   }
 
   public String getLocation() {
     return location;
   }
 
-  public int getPriority() {
+  public void setLocation(String location) {
+    this.location = location;
+  }
+
+  public String getPriority() {
     return priority;
+  }
+
+  public void setPriority(String priority) {
+    this.priority = priority;
   }
 
   public RepeatResource getRepeat() {
     return repeat;
   }
 
+  public void setRepeat(RepeatResource repeat) {
+    this.repeat = repeat;
+  }
+
   public String getRecurrenceId() {
     return recurrenceId;
+  }
+
+  public void setRecurrenceId(String recurrenceId) {
+    this.recurrenceId = recurrenceId;
   }
 
   public String getOriginalEvent() {
     return originalEvent;
   }
 
+  public void setOriginalEvent(String originalEvent) {
+    this.originalEvent = originalEvent;
+  }
+
   public Reminder[] getReminder() {
     return reminder;
+  }
+
+  public void setReminder(Reminder[] reminder) {
+    this.reminder = reminder;
   }
 
   public Attachment[] getAttachments() {
     return attachments;
   }
 
+  public void setAttachments(Attachment[] attachments) {
+    this.attachments = attachments;
+  }
+
   public String[] getParticipants() {
     return participants;
+  }
+
+  public void setParticipants(String[] participants) {
+    this.participants = participants;
   }
 
   public String getPrivacy() {
     return privacy;
   }
 
+  public void setPrivacy(String privacy) {
+    this.privacy = privacy;
+  }
+
   public String getAvailability() {
     return availability;
   }
 
+  public void setAvailability(String availability) {
+    this.availability = availability;
+  }  
 }
