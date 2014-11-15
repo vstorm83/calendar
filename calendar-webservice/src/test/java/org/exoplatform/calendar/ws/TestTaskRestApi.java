@@ -19,10 +19,14 @@
 package org.exoplatform.calendar.ws;
 
 import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
+import static org.exoplatform.calendar.ws.CalendarRestApi.EVENT_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.TASK_URI;
 
 import org.exoplatform.calendar.service.CalendarEvent;
+import org.exoplatform.calendar.service.EventCategory;
 import org.exoplatform.calendar.ws.bean.CalendarResource;
+import org.exoplatform.calendar.ws.bean.CategoryResource;
+import org.exoplatform.calendar.ws.bean.EventResource;
 import org.exoplatform.calendar.ws.bean.Resource;
 import org.exoplatform.calendar.ws.bean.TaskResource;
 import org.exoplatform.common.http.HTTPMethods;
@@ -69,24 +73,39 @@ public class TestTaskRestApi extends AbstractTestEventRestApi {
     runTestGetEventById_Shared(CAL_BASE_URI + TASK_URI, CalendarEvent.TYPE_TASK);
   }
   
-  @SuppressWarnings("unchecked")
   public void testGetTaskById_Expand() throws Exception {    
+    EventCategory cat = createEventCategory("root", "testCategory");
+    
     CalendarEvent uEvt = createEvent(userCalendar);
+    uEvt.setEventCategoryId(cat.getId());
     uEvt.setEventType(CalendarEvent.TYPE_TASK);
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
     
     login("root");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + uEvt.getId() + "?expand=calendar", baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + 
+                                         uEvt.getId(), baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());    
-    Resource calR0 = (Resource)response.getEntity();
+    TaskResource calR0 = (TaskResource)response.getEntity();
     assertNotNull(calR0);
     assertEquals(uEvt.getId(), calR0.getId());
+    String calHref = "/v1/calendar/calendars/" + uEvt.getCalendarId();
+    assertEquals(calHref, calR0.getCalendar());    
     
-    TaskResource<CalendarResource> calR1 = (TaskResource<CalendarResource>) response.getEntity();
-    assertNotNull(calR1.getCalendar());
-    assertEquals(calR1.getCalendar().getName(), userCalendar.getName());
+    //expand=calendar
+    response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + 
+                                         uEvt.getId() + "?expand=calendar", baseURI, h, null, writer);
+    calR0 = (TaskResource)response.getEntity();
+    assertTrue(calR0.getCalendar() instanceof CalendarResource);
+    assertEquals(uEvt.getCalendarId(), ((CalendarResource)calR0.getCalendar()).getId());
+    
+    //expand=categories
+    response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + 
+                                         uEvt.getId() + "?expand=categories", baseURI, h, null, writer);
+    calR0 = (TaskResource)response.getEntity();
+    assertTrue(calR0.getCategories() instanceof CategoryResource[]);
+    assertEquals(1, calR0.getCategories().length);
   }
   
   public void testUpdateTask() throws Exception {

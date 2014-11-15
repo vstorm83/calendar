@@ -34,7 +34,7 @@ public class RestEventQuery extends EventQuery {
     sql.append(" WHERE");
     // find event from specific calendar
     if (getCalendarPath() != null) {
-      sql.append(" jcr:path LIKE '").append(getCalendarPath()).append("/%'");
+      sql.append(" jcr:path LIKE '%").append(getCalendarPath()).append("/%'");
     }
 
     if (getCalendarId() != null || getParticipants() != null) {

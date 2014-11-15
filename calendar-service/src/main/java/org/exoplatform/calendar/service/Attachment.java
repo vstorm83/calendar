@@ -96,7 +96,7 @@ public class Attachment {
     this.name = name_;
   }
 
-  public String getDataPath() throws Exception {
+  public String getDataPath() {
     try {
       if(getSesison() != null) {
         Node attachmentData = (Node) getSesison().getItem(getId());
@@ -104,7 +104,7 @@ public class Attachment {
           return attachmentData.getPath();
         }
       }
-    } catch (ItemNotFoundException e) {
+    } catch (Exception e) {
       if (log.isDebugEnabled()) {
         log.debug("The attachment note is not exist", e);
       }

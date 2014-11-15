@@ -18,9 +18,7 @@
 package org.exoplatform.calendar.ws.bean;
 
 import static org.exoplatform.calendar.ws.CalendarRestApi.ATTACHMENT_URI;
-import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import org.exoplatform.calendar.service.Attachment;
@@ -35,18 +33,22 @@ public class AttachmentResource extends Resource {
   private String name;
   private String mimeType; 
   private long weight;
+  
+  public AttachmentResource() {
+    super(null, null);
+  } 
 
-  public AttachmentResource(Attachment data) {
+  public AttachmentResource(Attachment data, String basePath) {
+    super(data.getDataPath(), basePath);
+    
+    StringBuilder path = new StringBuilder(basePath);
+    path.append(ATTACHMENT_URI);
     try {
-      setId(data.getDataPath());
+      setHref(path.toString() + (URLEncoder.encode(getId(), "ISO-8859-1")).toString());
     } catch (Exception e) {
-      if(LOG.isDebugEnabled()) LOG.debug(e.getMessage());
+      LOG.error(e);
     }
-    try {
-     if(getId() != null) setHref(new StringBuffer(CAL_BASE_URI).append(ATTACHMENT_URI).append(URLEncoder.encode(getId(), "ISO-8859-1")).toString());
-    } catch (UnsupportedEncodingException e) {
-      if(LOG.isDebugEnabled()) LOG.debug(e.getMessage());
-    }
+    
     name = data.getName();
     mimeType = data.getMimeType();
     weight = data.getSize();

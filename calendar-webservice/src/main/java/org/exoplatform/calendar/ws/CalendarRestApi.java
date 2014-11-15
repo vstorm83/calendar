@@ -38,6 +38,7 @@ import javax.ws.rs.core.UriInfo;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -106,16 +107,16 @@ import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.SyndFeedOutput;
 import com.sun.syndication.io.XmlReader;
 
-@Path("/calendar")
+@Path("/v1/calendar")
 public class CalendarRestApi implements ResourceContainer {
   private Log log = ExoLogger.getExoLogger(CalendarRestApi.class);
-  public static String VERSION_LASTEST = "v1";
+  public static String VERSION_LASTEST = "/v1";
   public static final String TEXT_ICS = "text/calendar";
   public static final MediaType TEXT_ICS_TYPE = new MediaType("text","calendar");
   public final static String BASE_URL = "/cs/calendar";
   public final static String BASE_EVENT_URL = BASE_URL + "/event";
 
-  public final static String CAL_BASE_URI = "/calendar";
+  public final static String CAL_BASE_URI = VERSION_LASTEST + "/calendar";
 
   public final static String CALENDAR_URI = "/calendars/";
   public final static String EVENT_URI = "/events/";
@@ -127,13 +128,15 @@ public class CalendarRestApi implements ResourceContainer {
   public final static String FEED_URI = "/feeds/";
   public final static String RSS_URI = "/rss";
   public final static String INVITATION_URI ="/invitations/";
-  public static final String HEADER_LINK = "link";
+  public static final String HEADER_LINK = "Link";
+  public static final String HEADER_LOCATION = "Location";
   
   private OrganizationService orgService;
   private int query_limit = 10;
   private SubResourceHrefBuilder subResourcesBuilder = new SubResourceHrefBuilder(this);
 
   private final static CacheControl cc = new CacheControl();
+  
   static {
     cc.setNoCache(true);
     cc.setNoStore(true);
@@ -151,7 +154,7 @@ public class CalendarRestApi implements ResourceContainer {
   @RolesAllowed("users")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getSubResources(@Context UriInfo uri) {
-    Map<String, String[][]> subResources = new HashMap<String, String[][]>();
+    Map<String, String[]> subResources = new HashMap<String, String[]>();
     subResources.put("subResourcesHref", subResourcesBuilder.buildResourceMap(uri));
 
     return Response.ok(subResources, MediaType.APPLICATION_JSON).cacheControl(cc).build();
@@ -177,13 +180,14 @@ public class CalendarRestApi implements ResourceContainer {
     try {
       limit = parseLimit(limit);
       CalendarCollection<Calendar> cals = calendarServiceInstance().getAllCalendars(currentUserId(), type, offset, limit);
-      if(cals == null || cals.isEmpty()) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
+      if(cals == null || cals.isEmpty()) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();      
       
+      String basePath = getBasePath(uri);
       Collection data = new LinkedList();
       Iterator<Calendar> calIterator = cals.iterator();
       while (calIterator.hasNext()) {
-         Calendar cal = calIterator.next();
-         data.add(extractObject(new CalendarResource(cal), fields));
+         Calendar cal = calIterator.next();         
+         data.add(extractObject(new CalendarResource(cal, basePath), fields));
       }
       
       CollectionResource calData = new CollectionResource(data, cals.getFullSize());
@@ -194,17 +198,18 @@ public class CalendarRestApi implements ResourceContainer {
         JsonValue value = new JsonGeneratorImpl().createJsonObject(calData);
         StringBuilder sb = new StringBuilder(jsonp);
         sb.append('(').append(value).append(");");
-        return Response.ok(sb.toString(), new MediaType("text", "javascript")).header(HEADER_LINK, buildFullUrl(uri, offset, limit, calData.getFullSize())).cacheControl(cc).build();
+        return Response.ok(sb.toString(), new MediaType("text", "javascript")).header(HEADER_LINK, buildFullUrl(uri, offset, limit, calData.getSize())).cacheControl(cc).build();
       }
       
       //
-      return Response.ok(calData, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uri, offset, limit, calData.getFullSize())).cacheControl(cc).build();
+      return Response.ok(calData, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uri, offset, limit, calData.getSize())).cacheControl(cc).build();
     } catch (Exception e) {
       if(log.isDebugEnabled()) log.debug(e.getMessage());
     }
     return Response.status(HTTPStatus.UNAVAILABLE).cacheControl(cc).build();
 
   }
+
 
   /**
    *  Creates a calendar if:
@@ -214,9 +219,8 @@ public class CalendarRestApi implements ResourceContainer {
   @POST
   @RolesAllowed("users")
   @Path("/calendars/")
-  @Produces(MediaType.APPLICATION_JSON)
-	public Response createCalendar(CalendarResource cal) {
-    Calendar calendar = new Calendar();
+	public Response createCalendar(CalendarResource cal, @Context UriInfo uriInfo) {
+    Calendar calendar = new Calendar();    
     buildCalendar(calendar, cal);
     
 		if (cal.getGroups() != null && cal.getGroups().length > 0) {
@@ -234,8 +238,8 @@ public class CalendarRestApi implements ResourceContainer {
 		    calendarServiceInstance().saveUserCalendar(currentUserId(), calendar, true);
 		  }
 		}
-
-		return Response.ok(new CalendarResource(calendar), MediaType.APPLICATION_JSON).status(HTTPStatus.CREATED).cacheControl(cc).build();
+		
+		return Response.status(HTTPStatus.CREATED).header(HEADER_LOCATION, uriInfo.getAbsolutePath() + cal.getId()).cacheControl(cc).build();
 	}
 
   /**
@@ -248,14 +252,15 @@ public class CalendarRestApi implements ResourceContainer {
   @RolesAllowed("users")
   @Path("/calendars/{id}")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getCalendarById(@PathParam("id") String id, @QueryParam("fields") String fields, @QueryParam("jsonp") String jsonp) {
+  public Response getCalendarById(@PathParam("id") String id, @QueryParam("fields") String fields, 
+                                  @QueryParam("jsonp") String jsonp, @Context UriInfo uriInfo) {
     try {
       Calendar cal = calendarServiceInstance().getCalendarById(id);
       if(cal == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
       
       CalendarResource calData = null;
       if (this.hasViewCalendarPermission(cal, currentUserId())) {
-        calData = new CalendarResource(cal);
+        calData = new CalendarResource(cal, getBasePath(uriInfo));
       }
       
       if (calData == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -263,7 +268,7 @@ public class CalendarRestApi implements ResourceContainer {
       Object resource = extractObject(calData, fields);
       if (jsonp != null) {
         String json = null;
-        if (resource instanceof Map) json = new JSONObject((Map)resource).toString();
+        if (resource instanceof Map) json = new JSONObject(resource).toString();
         else {
           JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
           json = generatorImpl.createJsonObject(resource).toString();
@@ -289,7 +294,6 @@ public class CalendarRestApi implements ResourceContainer {
   @PUT
   @RolesAllowed("users")
   @Path("/calendars/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
   public Response updateCalendarById(@PathParam("id") String id, CalendarResource calObj) {
     try {
       Calendar cal = calendarServiceInstance().getCalendarById(id);
@@ -306,8 +310,7 @@ public class CalendarRestApi implements ResourceContainer {
       //
       return Response.status(HTTPStatus.UNAUTHORIZED).cacheControl(cc).build();
     } catch (Exception e) {
-      e.printStackTrace();
-      if(log.isDebugEnabled()) log.debug(e.getMessage());
+      log.error(e);
     }
     return Response.status(HTTPStatus.UNAVAILABLE).cacheControl(cc).build();
   }
@@ -331,18 +334,17 @@ public class CalendarRestApi implements ResourceContainer {
         switch (cal.getCalType()) {
         case Calendar.TYPE_PRIVATE:
           calendarServiceInstance().removeUserCalendar(cal.getCalendarOwner(), id);
-          return Response.ok().build();
+          break;
         case Calendar.TYPE_PUBLIC:
           calendarServiceInstance().removePublicCalendar(id);
-          return Response.ok().build();
+          break;
         case Calendar.TYPE_SHARED:
           if (this.hasViewCalendarPermission(cal, currentUserId())) {
             calendarServiceInstance().removeSharedCalendar(currentUserId(),id);
-            return Response.ok().build();
+            break;
           }
-        default:
-          break;
         }
+        return Response.ok().cacheControl(cc).build();
       } else {
         return Response.status(HTTPStatus.UNAUTHORIZED).cacheControl(cc).build();
       }
@@ -388,10 +390,9 @@ public class CalendarRestApi implements ResourceContainer {
         return Response.ok(in, TEXT_ICS_TYPE)
             .header("Cache-Control", "private max-age=600, s-maxage=120").
             header("Content-Disposition", "attachment;filename=\"" + cal.getName() + Utils.ICS_EXT).cacheControl(cc).build();
+      } else {
+        return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();        
       }
-      
-      //
-      return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
     } catch (Exception e) {
       if(log.isDebugEnabled()) log.debug(e.getMessage());
     }
@@ -420,6 +421,7 @@ public class CalendarRestApi implements ResourceContainer {
                                            @QueryParam("returnSize") boolean returnSize,
                                            @QueryParam("fields") String fields,
                                            @QueryParam("jsonp") String jsonp,
+                                           @QueryParam("expand") String expand,
                                            @Context UriInfo uri) throws Exception {
     limit = parseLimit(limit);
     String username = currentUserId();
@@ -434,24 +436,14 @@ public class CalendarRestApi implements ResourceContainer {
     
     List data = new LinkedList();
     for (CalendarEvent event : events.load(offset, limit)) {
-      data.add(extractObject(new EventResource(event), fields));
+      data.add(buildEventResource(event, uri, expand, fields));
     }
     long fullSize = returnSize ? events.getSize() : -1;
     CollectionResource evData = new CollectionResource(data, fullSize);    
     evData.setOffset(offset);
     evData.setLimit(limit);
     
-    ResponseBuilder response = null;
-    
-    if (jsonp != null) {
-      JsonValue value = new JsonGeneratorImpl().createJsonObject(evData);
-      StringBuilder sb = new StringBuilder(jsonp);
-      sb.append('(').append(value).append(");");
-      response = Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc);
-    } else {
-      response = Response.ok(evData, MediaType.APPLICATION_JSON).cacheControl(cc);
-    }
-    
+    ResponseBuilder response = buildJsonP(evData, jsonp);    
     if (returnSize) {
       response.header(HEADER_LINK, buildFullUrl(uri, offset, limit, fullSize));
     }
@@ -475,10 +467,12 @@ public class CalendarRestApi implements ResourceContainer {
   public Response getEventById(@PathParam("id") String id,
                                                  @QueryParam("fields") String fields,
                                                  @QueryParam("expand") String expand,
-                                                 @QueryParam("jsonp") String jsonp) {
+                                                 @QueryParam("jsonp") String jsonp, @Context UriInfo uriInfo) {
     try {
-      CalendarEvent ev = calendarServiceInstance().getEventById(id);
+      CalendarService service = calendarServiceInstance();
+      CalendarEvent ev = service.getEventById(id);
       if(ev == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
+      
       Calendar cal = calendarServiceInstance().getCalendarById(ev.getCalendarId());
       boolean inParticipant = false;
       String[] participant = ev.getParticipant();
@@ -487,36 +481,12 @@ public class CalendarRestApi implements ResourceContainer {
         if (Arrays.binarySearch(participant, currentUserId()) > -1) inParticipant = true;
       }
      
-      if (cal.getPublicUrl() != null || this.hasViewCalendarPermission(cal, currentUserId()) || inParticipant) {
-        Object resource = null;
-        if ("calendar".equals(expand)) {
-          resource = extractObject(new EventResource<CalendarResource>(ev).setCal(new CalendarResource(cal)), fields);
-        } else {
-          resource = extractObject(new EventResource<String>(ev), fields);
-        }
-        
-        ResponseBuilder response = null;
-        
-        if (jsonp != null) {
-          String json = null;
-          if (resource instanceof Map) json = new JSONObject((Map<?, ?>)resource).toString();
-          else {
-            JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-            json = generatorImpl.createJsonObject(resource).toString();
-          }
-          StringBuilder sb = new StringBuilder(jsonp);
-          sb.append('(').append(json).append(");");
-          response = Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc);
-        } else {
-          response = Response.ok(resource, MediaType.APPLICATION_JSON).cacheControl(cc);
-        }
-        
-        //
-        return response.build();
-      } 
-
-      //
-      return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
+      if (cal.getPublicUrl() != null || this.hasViewCalendarPermission(cal, currentUserId()) || inParticipant) {        
+        Object resource = buildEventResource(ev, uriInfo, expand, fields);        
+        return buildJsonP(resource, jsonp).build();
+      } else {
+        return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();        
+      }
     } catch (Exception e) {
       if(log.isDebugEnabled()) log.debug(e.getMessage());
     }
@@ -533,8 +503,7 @@ public class CalendarRestApi implements ResourceContainer {
   @PUT
   @RolesAllowed("users")
   @Path("/events/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response updateEventById(@PathParam("id") String id,  EventResource<?> evObject) {
+  public Response updateEventById(@PathParam("id") String id,  EventResource evObject) {
     try {
       CalendarEvent old = calendarServiceInstance().getEventById(id);
       if(old == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -585,7 +554,6 @@ public class CalendarRestApi implements ResourceContainer {
   @DELETE
   @RolesAllowed("users")
   @Path("/events/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
   public Response deleteEventById(@PathParam("id") String id) {
     try {
       CalendarEvent ev = calendarServiceInstance().getEventById(id);
@@ -663,9 +631,10 @@ public class CalendarRestApi implements ResourceContainer {
           List attResource = new ArrayList();
           Utils.skip(it, offset);
           int counter = 0;
+          String basePath = getBasePath(uriInfo);
           while (it.hasNext()) {
             Attachment a = it.next();
-            attResource.add(extractObject(new AttachmentResource(a), fields));
+            attResource.add(extractObject(new AttachmentResource(a, basePath), fields));
             if(++counter == limit) break;
           }
           CollectionResource evData = new CollectionResource(attResource, ev.getAttachment().size());
@@ -676,11 +645,11 @@ public class CalendarRestApi implements ResourceContainer {
             JsonValue value = new JsonGeneratorImpl().createJsonObject(evData);
             StringBuilder sb = new StringBuilder(jsonp);
             sb.append('(').append(value).append(");");
-            return Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getFullSize())).build();
+            return Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getSize())).build();
           }
           
           //
-          return Response.ok(evData, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getFullSize())).cacheControl(cc).build();
+          return Response.ok(evData, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getSize())).cacheControl(cc).build();
         }
         
         //
@@ -703,8 +672,7 @@ public class CalendarRestApi implements ResourceContainer {
   @RolesAllowed("users")
   @Path("/events/{id}/attachments")
   @Consumes("multipart/*")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response createAttachmentForEvent(@PathParam("id") String id, Iterator<FileItem> iter) {
+  public Response createAttachmentForEvent(@Context UriInfo uriInfo, @PathParam("id") String id, Iterator<FileItem> iter) {
     try {
       CalendarEvent ev = calendarServiceInstance().getEventById(id);
       if (ev == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -713,7 +681,6 @@ public class CalendarRestApi implements ResourceContainer {
 
       if (Utils.isCalendarEditable(currentUserId(), cal)) {
         int calType = Calendar.TYPE_ALL;
-        List<AttachmentResource> rs = new LinkedList<AttachmentResource>();
         List<Attachment> attachment = new ArrayList<Attachment>();
         try {
           calType = Integer.parseInt(ev.getCalType());
@@ -733,7 +700,6 @@ public class CalendarRestApi implements ResourceContainer {
             at.setName(file.getName());
             at.setInputStream(file.getInputStream());
             attachment.add(at);
-            rs.add(new AttachmentResource(at));
           }
         }
         ev.setAttachment(attachment);
@@ -751,9 +717,11 @@ public class CalendarRestApi implements ResourceContainer {
           default:
             break;
         }
-        
-        CollectionResource<?> evData = new CollectionResource<AttachmentResource>(rs, rs.size());
-        return Response.ok(evData, MediaType.APPLICATION_JSON).status(HTTPStatus.CREATED).cacheControl(cc).build();
+
+        StringBuilder attUri = new StringBuilder(getBasePath(uriInfo));
+        attUri.append("/").append(ev.getId());
+        attUri.append(ATTACHMENT_URI);
+        return Response.status(HTTPStatus.CREATED).header(HEADER_LOCATION, attUri.toString()).cacheControl(cc).build();
       }
 
       //
@@ -785,6 +753,7 @@ public class CalendarRestApi implements ResourceContainer {
                                                              @QueryParam("limit") int limit,
                                                              @QueryParam("fields") String fields,
                                                              @QueryParam("jsonp") String jsonp,
+                                                             @QueryParam("expand") String expand,
                                                              @QueryParam("returnSize") boolean returnSize,
                                                              @Context UriInfo uri) throws Exception {
     limit = parseLimit(limit);
@@ -805,9 +774,10 @@ public class CalendarRestApi implements ResourceContainer {
 
       EventQuery eventQuery = buildEventQuery(start, end, category, null, calendar.getId(), participant, CalendarEvent.TYPE_EVENT, returnSize);
       ListAccess<CalendarEvent> events = evtDAO.findEventsByQuery(eventQuery);
+
       //
       for (CalendarEvent event : events.load(offset, limit)) {
-        data.add(extractObject(new EventResource(event), fields));
+        data.add(buildEventResource(event, uri, expand, fields));
       }        
       if (returnSize) {
         fullSize = events.getSize();
@@ -820,15 +790,7 @@ public class CalendarRestApi implements ResourceContainer {
     evData.setOffset(offset);
     evData.setLimit(limit);
     
-    ResponseBuilder response = null;
-    if (jsonp != null) {
-      JsonValue json = new JsonGeneratorImpl().createJsonObject(evData);
-      StringBuilder sb = new StringBuilder(jsonp);
-      sb.append('(').append(json).append(");");
-      response = Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc);
-    } else {
-     response = Response.ok(evData, MediaType.APPLICATION_JSON).cacheControl(cc);
-    }
+    ResponseBuilder response = buildJsonP(evData, jsonp);
     
     if (returnSize) {
       response.header(HEADER_LINK, buildFullUrl(uri, offset, limit, fullSize));
@@ -848,7 +810,7 @@ public class CalendarRestApi implements ResourceContainer {
   @POST
   @RolesAllowed("users")
   @Path("/calendars/{id}/events")
-  public Response createEventForCalendar(@PathParam("id") String id, EventResource<?> evObject) {
+  public Response createEventForCalendar(@PathParam("id") String id, EventResource evObject, @Context UriInfo uriInfo) {
     try {
       Calendar cal = calendarServiceInstance().getCalendarById(id);
       if (cal == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -870,7 +832,9 @@ public class CalendarRestApi implements ResourceContainer {
         default:
           break;
         }
-        return Response.ok(new EventResource<String>(evt), MediaType.APPLICATION_JSON).status(HTTPStatus.CREATED).cacheControl(cc).build();
+        
+        String location = new StringBuilder(getBasePath(uriInfo)).append(EVENT_URI).append(evt.getId()).toString();
+        return Response.status(HTTPStatus.CREATED).header(HEADER_LOCATION, location).cacheControl(cc).build();
       } else {
         return Response.status(HTTPStatus.UNAUTHORIZED).cacheControl(cc).build();
       }
@@ -894,6 +858,7 @@ public class CalendarRestApi implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   @Path("/events/{id}/occurrences")
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getOccurrencesFromEvent(@PathParam("id") String id,
                                                                      @QueryParam("offset") int offset,
                                                                      @QueryParam("limit") int limit,
@@ -901,6 +866,7 @@ public class CalendarRestApi implements ResourceContainer {
                                                                      @QueryParam("end") String end,
                                                                      @QueryParam("fields") String fields,
                                                                      @QueryParam("jsonp") String jsonp,
+                                                                     @QueryParam("expand") String expand,
                                                                      @Context UriInfo uriInfo) {
     try {
       limit = parseLimit(limit);
@@ -929,23 +895,22 @@ public class CalendarRestApi implements ResourceContainer {
         Collection data = new ArrayList();
         Iterator<CalendarEvent> evIter = occMap.values().iterator();
         Utils.skip(evIter, offset);
+        
         int counter =0;
         while (evIter.hasNext()) {
-          data.add(extractObject(new EventResource(evIter.next()), fields));
+          data.add(buildEventResource(evIter.next(), uriInfo, expand, fields));
           if(++counter == limit) break;
         }
         
         CollectionResource evData = new CollectionResource(data, occMap.values().size());
-        
-        if (jsonp != null) {
-          JsonValue json = new JsonGeneratorImpl().createJsonObject(evData);
-          StringBuilder sb = new StringBuilder(jsonp);
-          sb.append('(').append(json).append(");");
-          return Response.ok(sb.toString(), new MediaType("text", "javascript")).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getFullSize())).cacheControl(cc).build();
-        }
+        evData.setOffset(offset);
+        evData.setOffset(limit);
         
         //
-        return Response.ok(evData, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getFullSize())).cacheControl(cc).build();
+        ResponseBuilder response = buildJsonP(evData, jsonp);
+        
+        response.header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, evData.getSize()));
+        return response.build();
       }
       
       //
@@ -976,6 +941,7 @@ public class CalendarRestApi implements ResourceContainer {
                                           @QueryParam("limit") int limit,
                                           @QueryParam("fields") String fields,
                                           @QueryParam("jsonp") String jsonp,
+                                          @QueryParam("expand") String expand,
                                           @QueryParam("returnSize") boolean returnSize,
                                           @Context UriInfo uriInfo) throws Exception {
     limit = parseLimit(limit);
@@ -991,24 +957,14 @@ public class CalendarRestApi implements ResourceContainer {
     
     List data = new LinkedList();
     for (CalendarEvent event : events.load(offset, limit)) {
-      data.add(extractObject(new TaskResource(event), fields));
+      data.add(buildTaskResource(event, uriInfo, expand, fields));
     }
     long fullSize = returnSize ? events.getSize() : -1;
     CollectionResource evData = new CollectionResource(data, fullSize);    
     evData.setOffset(offset);
     evData.setLimit(limit);
-
     
-    ResponseBuilder response = null;
-    if (jsonp != null) {
-      JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-      JsonValue json = generatorImpl.createJsonObject(evData);
-      StringBuilder sb = new StringBuilder(jsonp);
-      sb.append('(').append(json).append(");");
-      response = Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc);
-    } else {
-      response = Response.ok(evData, MediaType.APPLICATION_JSON).cacheControl(cc);
-    }
+    ResponseBuilder response = buildJsonP(evData, jsonp);
     
     if (returnSize) {
       response.header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, fullSize));
@@ -1030,7 +986,7 @@ public class CalendarRestApi implements ResourceContainer {
   public Response getTaskById(@PathParam("id") String id,
                                                 @QueryParam("fields") String fields,
                                                 @QueryParam("expand") String expand,
-                                                @QueryParam("jsonp") String jsonp) {
+                                                @QueryParam("jsonp") String jsonp, @Context UriInfo uriInfo) {
     try {
       CalendarEvent ev = calendarServiceInstance().getEventById(id);
       if(ev == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -1042,34 +998,12 @@ public class CalendarRestApi implements ResourceContainer {
         if (Arrays.binarySearch(participant, currentUserId()) > -1) inParticipant = true;;
       }
     
-      if (cal.getPublicUrl() != null || this.hasViewCalendarPermission(cal, currentUserId()) || inParticipant) {
-        
-        Object resource = null;
-
-        if ("calendar".equals(expand)) {
-          resource = extractObject(new TaskResource<CalendarResource>(ev).setCal(new CalendarResource(cal)), fields);
-        } else {
-          resource = extractObject(new TaskResource<String>(ev), fields);
-        }
-        
-        if (jsonp != null) {
-          String json = null;
-          if (resource instanceof Map) json = new JSONObject((Map<?, ?>)resource).toString();
-          else {
-            JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-            json = generatorImpl.createJsonObject(resource).toString();
-          }
-          StringBuilder sb = new StringBuilder(jsonp);
-          sb.append('(').append(json).append(");");
-          return Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc).build();
-        }
-        
-        //
-        return Response.ok(resource, MediaType.APPLICATION_JSON).cacheControl(cc).build();
+      if (cal.getPublicUrl() != null || this.hasViewCalendarPermission(cal, currentUserId()) || inParticipant) {        
+        Object resource = buildTaskResource(ev, uriInfo, expand, fields);        
+        return buildJsonP(resource, jsonp).build();
+      } else {
+        return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();        
       }
-      
-      //
-      return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
     } catch (Exception e) {
       if(log.isDebugEnabled()) log.debug(e.getMessage());
     }
@@ -1084,8 +1018,7 @@ public class CalendarRestApi implements ResourceContainer {
   @PUT
   @RolesAllowed("users")
   @Path("/tasks/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response updateTaskById(@PathParam("id") String id, TaskResource<?> evObject) {
+  public Response updateTaskById(@PathParam("id") String id, TaskResource evObject) {
     try {
       CalendarEvent old = calendarServiceInstance().getEventById(id);
       if (old == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -1176,7 +1109,8 @@ public class CalendarRestApi implements ResourceContainer {
   @RolesAllowed("users")
   @Path("/attachments/{id}")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getAttachmentById(@PathParam("id") String id, @QueryParam("fields") String fields, @QueryParam("jsonp") String jsonp) {
+  public Response getAttachmentById(@PathParam("id") String id, @QueryParam("fields") String fields, 
+                                    @QueryParam("jsonp") String jsonp, @Context UriInfo uriInfo) {
     try {
       CalendarEvent ev = this.findEventAttachment(id);
       if (ev == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
@@ -1195,11 +1129,11 @@ public class CalendarRestApi implements ResourceContainer {
     
       if (cal.getPublicUrl() != null || this.hasViewCalendarPermission(cal, currentUserId()) || inParticipant) {
           
-        AttachmentResource evData = new AttachmentResource(att);
+        AttachmentResource evData = new AttachmentResource(att, getBasePath(uriInfo));
         Object resource = extractObject(evData, fields);
         if (jsonp != null) {
           String json = null;
-          if (resource instanceof Map) json = new JSONObject((Map)resource).toString();
+          if (resource instanceof Map) json = new JSONObject(resource).toString();
           else {
             JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
             json = generatorImpl.createJsonObject(resource).toString();
@@ -1252,6 +1186,7 @@ public class CalendarRestApi implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   @Path("/categories")
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getEventCategories(@QueryParam("offset") int offset,
                                                           @QueryParam("limit") int limit,
                                                           @QueryParam("fields") String fields,
@@ -1264,8 +1199,9 @@ public class CalendarRestApi implements ResourceContainer {
       if(ecData == null || ecData.isEmpty()) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
       Collection data = new ArrayList();
       
+      String basePath = getBasePath(uriInfo);
       for(EventCategory ec:ecData) {
-        data.add(extractObject(new CategoryResource(ec), fields));
+        data.add(extractObject(new CategoryResource(ec, basePath), fields));
       }
 
       CollectionResource resource = new CollectionResource(data, ecData.size());
@@ -1276,11 +1212,11 @@ public class CalendarRestApi implements ResourceContainer {
         JsonValue json = new JsonGeneratorImpl().createJsonObject(resource);
         StringBuilder sb = new StringBuilder(jsonp);
         sb.append('(').append(json).append(");");
-        return Response.ok(sb.toString(), new MediaType("text", "javascript")).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, resource.getFullSize())).cacheControl(cc).build();
+        return Response.ok(sb.toString(), new MediaType("text", "javascript")).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, resource.getSize())).cacheControl(cc).build();
       }
       
       //
-      return Response.ok(resource, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, resource.getFullSize())).cacheControl(cc).build();
+      return Response.ok(resource, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, resource.getSize())).cacheControl(cc).build();
     } catch (Exception e) {
       if(log.isDebugEnabled()) log.debug(e.getMessage());
     }
@@ -1290,7 +1226,9 @@ public class CalendarRestApi implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   @Path("/categories/{id}")
-  public Response getEventCategoryById(@PathParam("id") String id, @QueryParam("fields") String fields, @QueryParam("jsonp") String jsonp) {
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getEventCategoryById(@PathParam("id") String id, @QueryParam("fields") String fields, 
+                                       @QueryParam("jsonp") String jsonp, @Context UriInfo uriInfo) {
     try {
       List<EventCategory> data = calendarServiceInstance().getEventCategories(currentUserId());
       if(data == null || data.isEmpty()) {
@@ -1306,7 +1244,7 @@ public class CalendarRestApi implements ResourceContainer {
       
       if(category == null) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
       
-      CategoryResource categoryR = new CategoryResource(category);
+      CategoryResource categoryR = new CategoryResource(category, getBasePath(uriInfo));
       Object resource = extractObject(categoryR, fields);
       if (jsonp != null) {
         String json = null;
@@ -1340,7 +1278,7 @@ public class CalendarRestApi implements ResourceContainer {
   public Response getFeedById(@PathParam("id") String id,
                                                 @QueryParam("fields") String fields,
                                                 @QueryParam("expand") String expand,
-                                                @QueryParam("jsonp") String jsonp) {
+                                                @QueryParam("jsonp") String jsonp, @Context UriInfo uriInfo) {
     try {
       FeedData feed = null;
       for (FeedData feedData : calendarServiceInstance().getFeeds(currentUserId())) {
@@ -1361,47 +1299,8 @@ public class CalendarRestApi implements ResourceContainer {
         calIds.add(calendarId);
       }
       
-      //split expand parameter with format 'expand=members(offset:10,limit:10)'
-      String fieldName = null;
-      int offset = -1;
-      int limit = -1;
-      if (expand != null) {
-        int i =expand.indexOf('('); 
-        if (i > 0) {
-          fieldName = expand.substring(0, i);
-          offset = Integer.parseInt(expand.substring(expand.indexOf("offset:") + "offset:".length(), expand.indexOf(',')));
-          limit = Integer.parseInt(expand.substring(expand.indexOf("limit:") + "limit:".length(), expand.indexOf(')')));
-          limit = this.parseLimit(limit);
-        } else {
-          fieldName = expand;
-        }
-      }
-      
-      Object resource = null;
-      if ("calendars".equals(fieldName)) {
-        List<CalendarResource> calendars = new ArrayList<CalendarResource>();
-        for(String calId : Utils.subList(calIds, offset, limit)) {
-          calendars.add(new CalendarResource(calendarServiceInstance().getCalendarById(calId)));
-        }
-        resource =  extractObject(new FeedResource<CalendarResource>(feed, calIds.toArray(new String[calIds.size()])).setCals(calendars), fields);
-      } else {
-        resource = extractObject(new FeedResource<String>(feed, calIds.toArray(new String[calIds.size()])), fields);
-      }
-      
-      if (jsonp != null) {
-        String json = null;
-        if (resource instanceof Map) json = new JSONObject((Map<?, ?>)resource).toString();
-        else {
-          JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-          json = generatorImpl.createJsonObject(resource).toString();
-        }
-        StringBuilder sb = new StringBuilder(jsonp);
-        sb.append('(').append(json).append(");");
-        return Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc).build();
-      }
-      
-      //
-      return Response.ok(resource, MediaType.APPLICATION_JSON).cacheControl(cc).build();
+      Object resource = buildFeedResource(feed, calIds, uriInfo, expand, fields);        
+      return buildJsonP(resource, jsonp).build();      
     } catch (Exception e) {
       if(log.isDebugEnabled()) log.debug(e.getMessage());
     }
@@ -1415,8 +1314,7 @@ public class CalendarRestApi implements ResourceContainer {
   @PUT
   @RolesAllowed("users")
   @Path("/feeds/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response updateFeedById(@PathParam("id") String id, FeedResource<?> feedResource) {
+  public Response updateFeedById(@PathParam("id") String id, FeedResource feedResource) {
     try {
       FeedData feed = null;
       for (FeedData feedData : calendarServiceInstance().getFeeds(currentUserId())) {
@@ -1474,7 +1372,6 @@ public class CalendarRestApi implements ResourceContainer {
   @DELETE
   @RolesAllowed("users")
   @Path("/feeds/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
   public Response deleteFeedById(@PathParam("id") String id) {
     try {
       calendarServiceInstance().removeFeedData(currentUserId(),id);
@@ -1563,12 +1460,14 @@ public class CalendarRestApi implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   @Path("/invitations")
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getInvitations(@QueryParam("startTime") String start,
                                                   @QueryParam("endTime") String end,
                                                   @QueryParam("offset") int offset,
                                                   @QueryParam("limit") int limit,
                                                   @QueryParam("fields") String fields,
                                                   @QueryParam("jsonp") String jsonp,
+                                                  @QueryParam("expand") String expand,
                                                   @QueryParam("returnSize") boolean returnSize,
                                                   @Context UriInfo uri) throws Exception {
     java.util.Calendar[] dates = parseDate(start, end);
@@ -1602,22 +1501,14 @@ public class CalendarRestApi implements ResourceContainer {
     
     List data = new LinkedList();
     for (Object invitation : invitations.load(offset, limit)) {
-      data.add(extractObject(new InvitationResource((Invitation)invitation), fields));
+      data.add(buildInvitationResource((Invitation)invitation, uri, expand, fields));
     }
     long fullSize = returnSize ? invitations.getSize() : -1;
-    CollectionResource evData = new CollectionResource(data, fullSize);    
-    evData.setOffset(offset);
-    evData.setLimit(limit);
+    CollectionResource ivData = new CollectionResource(data, fullSize);    
+    ivData.setOffset(offset);
+    ivData.setLimit(limit);
 
-    ResponseBuilder response = null;
-    if (jsonp != null) {
-      JsonValue json = new JsonGeneratorImpl().createJsonObject(evData);
-      StringBuilder sb = new StringBuilder(jsonp);
-      sb.append('(').append(json).append(");");
-      response =  Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc);
-    } else {
-      response = Response.ok(evData, MediaType.APPLICATION_JSON).cacheControl(cc);
-    }
+    ResponseBuilder response = buildJsonP(ivData, jsonp);
     
     if (returnSize) {
       response.header(HEADER_LINK, buildFullUrl(uri, offset, limit, fullSize));
@@ -1626,6 +1517,7 @@ public class CalendarRestApi implements ResourceContainer {
     //
     return response.build();
   }
+
 
   /**
    * Returns the invitation if:<br/>
@@ -1636,7 +1528,11 @@ public class CalendarRestApi implements ResourceContainer {
   @RolesAllowed("users")
   @Path("/invitations/{id}")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getInvitationById(@PathParam("id") String id, @QueryParam("fields") String fields, @QueryParam("jsonp") String jsonp) throws Exception {
+  public Response getInvitationById(@PathParam("id") String id, 
+                                    @QueryParam("fields") String fields, 
+                                    @QueryParam("jsonp") String jsonp,
+                                    @QueryParam("expand") String expand,
+                                    @Context UriInfo uriInfo) throws Exception {
     CalendarService service = calendarServiceInstance();
     EventDAO evtDAO = service.getEventDAO();
     String username = currentUserId();
@@ -1649,25 +1545,13 @@ public class CalendarRestApi implements ResourceContainer {
       CalendarEvent event = service.getEventById(invitation.getEventId());
       Calendar calendar = service.getCalendarById(event.getCalendarId());
 
-      if (!Utils.isCalendarEditable(username, calendar)) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
-    }
-
-    InvitationResource iv = new InvitationResource(invitation);
-    Object resource = extractObject(iv, fields);
-    if (jsonp != null) {
-      String json = null;
-      if (resource instanceof Map) json = new JSONObject((Map)resource).toString();
-      else {
-        JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-        json = generatorImpl.createJsonObject(resource).toString();
+      if (!Utils.isCalendarEditable(username, calendar)) {
+        return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();
       }
-      StringBuilder sb = new StringBuilder(jsonp);
-      sb.append('(').append(json).append(");");
-      return Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc).build();
     }
 
-    //
-    return Response.ok(resource, MediaType.APPLICATION_JSON).cacheControl(cc).build();
+    Object resource = buildInvitationResource(invitation, uriInfo, expand, fields);
+    return buildJsonP(resource, jsonp).build();
   }
 
   /**
@@ -1729,13 +1613,15 @@ public class CalendarRestApi implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   @Path("/events/{id}/invitations/")
+  @Produces(MediaType.APPLICATION_JSON)
   public Response getInvitationsFromEvent(@PathParam("id") String eventId,
                                                                   @QueryParam("offset") int offset, 
                                                                   @QueryParam("limit") int limit,
                                                                   @QueryParam("status") String status, 
                                                                   @QueryParam("fields") String fields,
                                                                   @QueryParam("jsonp") String jsonp,
-                                                                  @Context UriInfo uri) throws Exception {
+                                                                  @QueryParam("expand") String expand,
+                                                                  @Context UriInfo uriInfo) throws Exception {
     limit = parseLimit(limit);
     CalendarService calService = calendarServiceInstance();
 
@@ -1772,30 +1658,24 @@ public class CalendarRestApi implements ResourceContainer {
     
     List data = new LinkedList();
     for (Invitation invitation : Utils.subList(invitations, offset, limit)) {
-      data.add(extractObject(new InvitationResource(invitation), fields));
+      data.add(buildInvitationResource(invitation, uriInfo, expand, fields));
     }
     int fullSize = invitations.size();
     
-    CollectionResource evData = new CollectionResource(data, fullSize);    
-    evData.setOffset(offset);
-    evData.setLimit(limit);
+    CollectionResource ivData = new CollectionResource(data, fullSize);    
+    ivData.setOffset(offset);
+    ivData.setLimit(limit);
 
-    if (jsonp != null) {
-      JsonValue json = new JsonGeneratorImpl().createJsonObject(evData);
-      StringBuilder sb = new StringBuilder(jsonp);
-      sb.append('(').append(json).append(");");
-      return Response.ok(sb.toString(), new MediaType("text", "javascript")).header(HEADER_LINK, buildFullUrl(uri, offset, limit, fullSize)).cacheControl(cc).build();
-    }
-    
-    //
-    return Response.ok(evData, MediaType.APPLICATION_JSON).header(HEADER_LINK, buildFullUrl(uri, offset, limit, fullSize)).cacheControl(cc).build();
+    ResponseBuilder response = buildJsonP(ivData, jsonp);
+    response.header(HEADER_LINK, buildFullUrl(uriInfo, offset, limit, fullSize));
+    return response.build();
   }
 
   @POST
   @RolesAllowed("users")
   @Path("/events/{id}/invitations/")
   public Response createInvitationForEvent(@PathParam("id") String id, @QueryParam("participant") String participant, 
-                                           @QueryParam("status") String status) throws Exception {
+                                           @QueryParam("status") String status, @Context UriInfo uriInfo) throws Exception {
     if (participant == null || participant.trim().isEmpty() || status == null) {
       return Response.status(HTTPStatus.BAD_REQUEST).cacheControl(cc).build();
     }
@@ -1813,8 +1693,8 @@ public class CalendarRestApi implements ResourceContainer {
       
       Invitation invite = evtDAO.createInvitation(id, participant, status);
       if (invite != null) {
-        InvitationResource rs = new InvitationResource(invite);
-        return Response.ok(rs, MediaType.APPLICATION_JSON).status(HTTPStatus.CREATED).cacheControl(cc).build();
+        String location = new StringBuilder(getBasePath(uriInfo)).append(INVITATION_URI).append(invite.getId()).toString();
+        return Response.status(HTTPStatus.CREATED).header(HEADER_LOCATION, location).cacheControl(cc).build();
       } else {
         return Response.status(HTTPStatus.BAD_REQUEST).cacheControl(cc).build();
       }
@@ -1858,6 +1738,12 @@ public class CalendarRestApi implements ResourceContainer {
     return (limit <=0 || limit > query_limit) ? query_limit : limit;
   }
   
+  private String getBasePath(UriInfo uriInfo) {
+    StringBuilder path = new StringBuilder(uriInfo.getBaseUri().toString());
+    path.append(CAL_BASE_URI);
+    return path.toString();
+  }
+  
   private String buildFullUrl(UriInfo uriInfo, int offset, int limit, long fullSize) {
       if (fullSize <= 0) {
         return "";
@@ -1870,20 +1756,20 @@ public class CalendarRestApi implements ResourceContainer {
       //
       StringBuilder sb = new StringBuilder();
       if (prev >= 0) {
-        sb.append("<").append(uriInfo.getPath()).append("?offset=");
+        sb.append("<").append(uriInfo.getAbsolutePath()).append("?offset=");
         sb.append(prev).append("&limit=").append(prevLimit).append(">").append(Utils.SEMICOLON).append("rel=\"previous\",");
       }
       
       long next = offset + limit;
       //
       if (next < fullSize) {
-        sb.append("<").append(uriInfo.getPath()).append("?offset=");
+        sb.append("<").append(uriInfo.getAbsolutePath()).append("?offset=");
         sb.append(next).append("&limit=").append(limit).append(">").append(Utils.SEMICOLON).append("rel=\"next\",");
       }
       
       //first page
       long firstLimit = limit > fullSize ? fullSize : limit;
-      sb.append("<").append(uriInfo.getPath()).append("?offset=0&limit=").append(firstLimit).append(">");
+      sb.append("<").append(uriInfo.getAbsolutePath()).append("?offset=0&limit=").append(firstLimit).append(">");
       sb.append(Utils.SEMICOLON).append("rel=\"first\",");
       //last page
       long lastIndex = fullSize - (fullSize % firstLimit);
@@ -1891,7 +1777,7 @@ public class CalendarRestApi implements ResourceContainer {
         lastIndex = fullSize - firstLimit;
       }
       if (lastIndex > 0) {
-        sb.append("<").append(uriInfo.getPath()).append("?offset=").append(lastIndex);
+        sb.append("<").append(uriInfo.getAbsolutePath()).append("?offset=").append(lastIndex);
         sb.append("&limit=").append(fullSize - lastIndex).append(">");
         sb.append(Utils.SEMICOLON).append("rel=\"last\"");
       }
@@ -2058,7 +1944,7 @@ public class CalendarRestApi implements ResourceContainer {
     return ConversationState.getCurrent().getIdentity().getUserId();
   }
   
-  private void buildEvent(CalendarEvent old, EventResource<?> evObject) {
+  private void buildEvent(CalendarEvent old, EventResource evObject) {
     old.setDescription(evObject.getDescription());
     old.setEventState(evObject.getAvailability());
     if (evObject.getRepeat() != null) {
@@ -2106,7 +1992,7 @@ public class CalendarRestApi implements ResourceContainer {
     } else {
       old.setRepeatType(null);
     }
-    old.setFromDateTime(evObject.getFrom());
+    old.setFromDateTime(ISO8601.parse(evObject.getFrom()).getTime());
     old.setLocation(evObject.getLocation());
     old.setPriority(evObject.getPriority());
     if (evObject.getReminder() != null) {
@@ -2116,12 +2002,12 @@ public class CalendarRestApi implements ResourceContainer {
     }
     old.setStatus(evObject.getPrivacy());
     old.setSummary(evObject.getSubject());
-    old.setToDateTime(evObject.getTo());
+    old.setToDateTime(ISO8601.parse(evObject.getTo()).getTime());
   }
   
-  private void buildEventFormTask(CalendarEvent old, TaskResource<?> evObject) {
+  private void buildEventFormTask(CalendarEvent old, TaskResource evObject) {
     old.setDescription(evObject.getNote());  
-    old.setFromDateTime(evObject.getFrom());
+    old.setFromDateTime(ISO8601.parse(evObject.getFrom()).getTime());
     old.setPriority(evObject.getPriority());
     if (evObject.getReminder() != null) {
       old.setReminders(Arrays.asList(evObject.getReminder()));      
@@ -2130,7 +2016,7 @@ public class CalendarRestApi implements ResourceContainer {
     }
     old.setStatus(evObject.getStatus());
     old.setSummary(evObject.getName());
-    old.setToDateTime(evObject.getTo());
+    old.setToDateTime(ISO8601.parse(evObject.getTo()).getTime());
     if (evObject.getDelegation() != null) {
       old.setTaskDelegator(StringUtils.join(evObject.getDelegation(), ","));
     } else {
@@ -2148,7 +2034,6 @@ public class CalendarRestApi implements ResourceContainer {
       cal.setEditPermission(null);
     }
     cal.setGroups(calR.getGroups());
-    cal.setId(calR.getId());
     cal.setName(calR.getName());
     cal.setPrivateUrl(calR.getPrivateURL());
     cal.setPublicUrl(calR.getPublicURL());
@@ -2157,6 +2042,208 @@ public class CalendarRestApi implements ResourceContainer {
       cal.setViewPermission(calR.getViewPermision().split(Utils.SEMICOLON));         
     } else {
       cal.setViewPermission(null);
+    }
+  }
+  
+  private ResponseBuilder buildJsonP(Object resource, String jsonp) throws Exception {
+    ResponseBuilder response = null;
+    if (jsonp != null) {
+      String json = null;
+      if (resource instanceof Map) json = new JSONObject((Map<?, ?>)resource).toString();
+      else {
+        JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
+        json = generatorImpl.createJsonObject(resource).toString();
+      }
+      StringBuilder sb = new StringBuilder(jsonp);
+      sb.append('(').append(json).append(");");
+      response = Response.ok(sb.toString(), new MediaType("text", "javascript")).cacheControl(cc);
+    } else {
+      response = Response.ok(resource, MediaType.APPLICATION_JSON).cacheControl(cc);
+    }
+
+    return response;
+  }
+  
+  private Object buildTaskResource(CalendarEvent event,
+                                   UriInfo uriInfo,
+                                   String expand,
+                                   String fields) throws Exception {
+    CalendarService service = calendarServiceInstance();
+    String basePath = getBasePath(uriInfo);
+    TaskResource evtResource = new TaskResource(event, basePath);
+    
+    List<Expand> expands = Expand.parse(expand);
+    for (Expand exp : expands) {
+      if ("calendar".equals(exp.getField())) {
+        Calendar cal = service.getCalendarById(event.getCalendarId());
+        evtResource.setCal(new CalendarResource(cal, basePath));
+      } else if ("categories".equals(exp.getField())) {
+        String categoryId = event.getEventCategoryId();
+        if (categoryId != null) {
+          EventCategory evCat = service.getEventCategory(currentUserId(), categoryId);
+          if (evCat != null) {
+            CategoryResource[] catRs = new CategoryResource[] {new CategoryResource(evCat, basePath)};
+            evtResource.setCats(Utils.<CategoryResource>subArray(catRs, exp.getOffset(), exp.getLimit()));
+          }
+        }
+      } else if ("attachments".equals(exp.getField())) {
+        if (event.getAttachment() != null) {
+          List<AttachmentResource> attRs = new LinkedList<AttachmentResource>();
+          for (Attachment att : event.getAttachment()) {
+            attRs.add(new AttachmentResource(att, basePath));
+          }
+          attRs = Utils.subList(attRs, exp.getOffset(), exp.getLimit());
+          evtResource.setAtts(attRs.toArray(new AttachmentResource[attRs.size()]));
+        }
+      }      
+    }
+
+    return extractObject(evtResource, fields);    
+  }
+
+  private Object buildEventResource(CalendarEvent ev, UriInfo uriInfo, String expand, String fields) throws Exception {
+    CalendarService service = calendarServiceInstance();
+    String basePath = getBasePath(uriInfo);
+    EventResource evtResource = new EventResource(ev, basePath);
+    
+    List<Expand> expands = Expand.parse(expand);
+    for (Expand exp : expands) {
+      if ("calendar".equals(exp.getField())) {
+        Calendar cal = service.getCalendarById(ev.getCalendarId());
+        evtResource.setCal(new CalendarResource(cal, basePath));
+      } else if ("categories".equals(exp.getField())) {
+        String categoryId = ev.getEventCategoryId();
+        if (categoryId != null) {
+          EventCategory evCat = service.getEventCategory(currentUserId(), categoryId);
+          if (evCat != null) {
+            CategoryResource[] catRs = new CategoryResource[] {new CategoryResource(evCat, basePath)};
+            evtResource.setCats(Utils.<CategoryResource>subArray(catRs, exp.getOffset(), exp.getLimit()));
+          }
+        }
+      } else if ("originalEvent".equals(exp.getField())) {
+        String orgId = ev.getOriginalReference();
+        if (orgId != null) {
+          CalendarEvent orgEv = service.getEventById(orgId);
+          if (orgEv != null) {
+            evtResource.setOEvent(new EventResource(orgEv, basePath));
+          }
+        }
+      } else if ("attachments".equals(exp.getField())) {
+        if (ev.getAttachment() != null) {
+          List<AttachmentResource> attRs = new LinkedList<AttachmentResource>();
+          for (Attachment att : ev.getAttachment()) {
+            attRs.add(new AttachmentResource(att, basePath));
+          }
+          attRs = Utils.subList(attRs, exp.getOffset(), exp.getLimit());
+          evtResource.setAtts(attRs.toArray(new AttachmentResource[attRs.size()]));
+        }
+      }      
+    }
+
+    return extractObject(evtResource, fields);    
+  }
+  
+  private Object buildFeedResource(FeedData feed, List<String> calIds, UriInfo uriInfo, 
+                                   String expand, String fields) throws Exception {
+    CalendarService service = calendarServiceInstance();
+    String basePath = getBasePath(uriInfo);
+    FeedResource feedResource = new FeedResource(feed, calIds.toArray(new String[calIds.size()]), basePath);
+    
+    List<Expand> expands = Expand.parse(expand);
+    for (Expand exp : expands) {
+      if ("calendars".equals(exp.getField())) {
+        List<Serializable> calendars = new ArrayList<Serializable>();
+        for(String calId : Utils.subList(calIds, exp.getOffset(), exp.getLimit())) {        
+          calendars.add(new CalendarResource(service.getCalendarById(calId), getBasePath(uriInfo)));
+        }      
+        feedResource.setCals(Utils.subList(calendars, exp.getOffset(), exp.getLimit()));
+      }      
+    }
+    
+    return extractObject(feedResource, fields);
+  }
+  
+  private Object buildInvitationResource(Invitation invitation,
+                                         UriInfo uriInfo,
+                                         String expand,
+                                         String fields) throws Exception {
+    CalendarService service = calendarServiceInstance();
+    String basePath = getBasePath(uriInfo);
+    InvitationResource ivtResource = new InvitationResource(invitation, basePath);
+    
+    List<Expand> expands = Expand.parse(expand);
+    for (Expand exp : expands) {
+      if ("event".equals(exp.getField())) {
+        CalendarEvent event = service.getEventById(invitation.getEventId());
+        ivtResource.setEvt(new EventResource(event, basePath));
+      }      
+    }
+
+    return extractObject(ivtResource, fields);    
+  }
+  
+  public static class Expand {
+    private String field;
+    private int offset;
+    private int limit;
+    
+    public Expand(String field, int offset, int limit) {
+      this.field = field;
+      this.offset = offset;
+      this.limit = limit;
+    }
+    
+    public static List<Expand> parse(String expand) {
+      List<Expand> expands = new LinkedList<CalendarRestApi.Expand>();
+      
+      if (expand != null) {
+        String[] frags = expand.split(",");
+        List<String> tmp = new LinkedList<String>();
+        for (int i = 0; i < frags.length; i++) {
+          String str = frags[i].trim();
+          if (!str.contains("(") && str.contains("")) {
+            tmp.add(str);
+          } else if (str.contains("(") && i + 1 < frags.length) {
+            tmp.add(str + "," + frags[++i]);
+          }
+        }
+                
+        for (String exp : tmp) {        
+          String fieldName = null;
+          int offset = 0;
+          int limit = -1;
+          if (exp != null) {
+            exp = exp.trim();
+            int i =exp.indexOf('('); 
+            if (i > 0) {
+              fieldName = exp.substring(0, i).trim();
+              try {
+                offset = Integer.parseInt(exp.substring(exp.indexOf("offset:") + "offset:".length(), exp.indexOf(',')).trim());
+                limit = Integer.parseInt(exp.substring(exp.indexOf("limit:") + "limit:".length(), exp.indexOf(')')).trim());
+              } catch (Exception ex) {            
+              }
+            } else {
+              fieldName = exp;
+            }
+          }
+          
+          expands.add(new Expand(fieldName, offset, limit));
+        }      
+      }
+      
+      return expands;
+    }
+    
+    public String getField() {
+      return field;
+    }
+    
+    public int getOffset() {
+      return offset;
+    }
+    
+    public int getLimit() {
+      return limit;
     }
   }
 }

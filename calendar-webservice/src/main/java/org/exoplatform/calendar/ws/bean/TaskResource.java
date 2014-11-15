@@ -18,48 +18,70 @@
 package org.exoplatform.calendar.ws.bean;
 
 import static org.exoplatform.calendar.ws.CalendarRestApi.CALENDAR_URI;
-import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.CATEGORY_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.TASK_URI;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.net.URLEncoder;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.exoplatform.calendar.service.Attachment;
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.Reminder;
 import org.exoplatform.calendar.service.Utils;
+import org.exoplatform.calendar.ws.CalendarRestApi;
+import org.exoplatform.commons.utils.ISO8601;
 
-public class TaskResource<T extends Serializable> extends Resource {
+public class TaskResource extends Resource {
   private static final long serialVersionUID = -5290204215375549320L;
 
   private String name;
   private String note;
-  private Date from;
-  private Date to;
-  private T calendar;
-  private String[] categories;
+  private String from;
+  private String to;
+  private Serializable calendar;
+  private Serializable[] categories;
   private String[] delegation;
   private String priority;
   private Reminder[] reminder;
-  private Attachment[] attachments;
+  private Serializable[] attachments;
   private String status;  
 
-  public TaskResource() {}
-
-  public TaskResource(CalendarEvent data) {
-   setId(data.getId());
-   setHref(new StringBuilder(CAL_BASE_URI).append(TASK_URI).append(data.getId()).toString());
+  public TaskResource() {
+    super(null, null);
+  }
+  
+  public TaskResource(CalendarEvent data, String basePath) throws Exception {
+   super(data.getId(), basePath);
+   setHref(new StringBuilder(basePath).append(TASK_URI).append(data.getId()).toString());
    name = data.getSummary();
    note = data.getDescription();
-   from = data.getFromDateTime();
-   to = data.getToDateTime();
-   calendar = (T) new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI).append(data.getCalendarId()).toString();
-   categories = new String[]{new StringBuilder(CAL_BASE_URI).append(CATEGORY_URI).append(data.getEventCategoryId()).toString()};
+   
+   Calendar fromCal = Utils.getInstanceTempCalendar();
+   fromCal.setTime(data.getFromDateTime());
+   from = ISO8601.format(fromCal);
+   
+   Calendar toCal = Utils.getInstanceTempCalendar();
+   toCal.setTime(data.getFromDateTime());
+   to = ISO8601.format(toCal);
+   
+   calendar = new StringBuilder(basePath).append(CALENDAR_URI).append(data.getCalendarId()).toString();
+   categories = new String[]{new StringBuilder(basePath).append(CATEGORY_URI).append(data.getEventCategoryId()).toString()};
    if(data.getTaskDelegator() != null) delegation = data.getTaskDelegator().split(Utils.COLON);   
    this.priority = data.getPriority(); 
    if(data.getReminders() != null) reminder = data.getReminders().toArray(new Reminder[]{});
-   if(data.getAttachment() != null) attachments = data.getAttachment().toArray(new Attachment[]{});
+   if(data.getAttachment() != null) {
+     List<String> atts = new LinkedList<String>();
+     
+     for (Attachment att : data.getAttachment()) {
+       atts.add(new StringBuilder(basePath).append(CalendarRestApi.ATTACHMENT_URI)
+                .append(URLEncoder.encode(att.getDataPath(), "ISO-8859-1"))
+                .toString());
+     }
+     attachments = atts.toArray(new String[atts.size()]);
+   }
    status = data.getStatus();
   }
 
@@ -79,36 +101,36 @@ public class TaskResource<T extends Serializable> extends Resource {
     this.note = note;
   }
 
-  public Date getFrom() {
+  public String getFrom() {
     return from;
   }
 
-  public void setFrom(Date from) {
+  public void setFrom(String from) {
     this.from = from;
   }
 
-  public Date getTo() {
+  public String getTo() {
     return to;
   }
 
-  public void setTo(Date to) {
+  public void setTo(String to) {
     this.to = to;
   }
 
-  public T getCalendar() {
+  public Serializable getCalendar() {
     return calendar;
   }
 
-  public TaskResource setCal(T calendar) {
+  public TaskResource setCal(Serializable calendar) {
     this.calendar = calendar;
     return this;
   }
 
-  public String[] getCategories() {
+  public Serializable[] getCategories() {
     return categories;
   }
 
-  public void setCategories(String[] categories) {
+  public void setCats(Serializable[] categories) {
     this.categories = categories;
   }
 
@@ -136,11 +158,11 @@ public class TaskResource<T extends Serializable> extends Resource {
     this.reminder = reminder;
   }
 
-  public Attachment[] getAttachments() {
+  public Serializable[] getAttachments() {
     return attachments;
   }
 
-  public void setAttachments(Attachment[] attachments) {
+  public void setAtts(Serializable[] attachments) {
     this.attachments = attachments;
   }
 

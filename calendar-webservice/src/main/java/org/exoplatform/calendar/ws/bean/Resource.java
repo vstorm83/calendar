@@ -19,26 +19,21 @@ package org.exoplatform.calendar.ws.bean;
 
 import java.io.Serializable;
 
-import org.exoplatform.commons.utils.ISO8601;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 public abstract class Resource implements Serializable {
-	/**
-   * 
-   */
-  protected static final long serialVersionUID = 8580243046687838325L;
-  /**
-   * 
-   */
+
+  private static final long serialVersionUID = 3422763517401399776L;
   private String id;
   private String href;
-	
-	String fields = null;
-	String datePatern = ISO8601.COMPLETE_DATE_FORMAT;
+	protected String basePath;
+  
+  public Resource(String id, String basePath) {
+    this.id = id;
+    this.basePath = basePath;
+  }
 
-	
-	public String getId(){
+  public String getId(){
 		return id;
 	}
 
@@ -56,14 +51,6 @@ public abstract class Resource implements Serializable {
   
   @Override
   public String toString() {
-    JSONObject json = new JSONObject();
-    try {
-      json.append("id", id);
-      json.append("href", href);
-      return json.toString();
-    } catch (JSONException e) {
-      e.printStackTrace();
-    }
-    return null;
+    return new JSONObject(this).toString();
   }
 }

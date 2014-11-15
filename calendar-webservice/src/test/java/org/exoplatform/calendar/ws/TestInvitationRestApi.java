@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.ws.bean.CollectionResource;
+import org.exoplatform.calendar.ws.bean.EventResource;
 import org.exoplatform.calendar.ws.bean.InvitationResource;
 import org.exoplatform.common.http.HTTPMethods;
 import org.exoplatform.common.http.HTTPStatus;
@@ -69,7 +70,7 @@ public class TestInvitationRestApi extends TestRestApi {
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
-    assertEquals(0, invitation.getSize());
+    assertEquals(0, invitation.getData().size());
     
     //john is particiant in uEvt
     //john doesn't have permission on event of root private calendar
@@ -80,9 +81,9 @@ public class TestInvitationRestApi extends TestRestApi {
     response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
     //returnSize is false by default
-    assertEquals(-1, invitation.getFullSize());
+    assertEquals(-1, invitation.getSize());
     assertNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LINK));
     
     login("root");  
@@ -90,8 +91,8 @@ public class TestInvitationRestApi extends TestRestApi {
     response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + "?returnSize=true", baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
+    assertEquals(2, invitation.getData().size());
     assertEquals(2, invitation.getSize());
-    assertEquals(2, invitation.getFullSize());
     assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LINK));            
     
     //jsonp
@@ -113,14 +114,14 @@ public class TestInvitationRestApi extends TestRestApi {
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     //john has edit permission on shared calendar
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
     
     login("root");
     response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     //root has edit permission on sEvt
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
   }
   
   @SuppressWarnings("rawtypes")
@@ -136,14 +137,14 @@ public class TestInvitationRestApi extends TestRestApi {
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     //john can view groupCalendar but doen't has edit permission
-    assertEquals(0, invitation.getSize());
+    assertEquals(0, invitation.getData().size());
 
     login("root");
     response= service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     //root has edit permission on gEvt
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
   }
   
   public void testGetInvitationWithFields() throws Exception {    
@@ -191,6 +192,16 @@ public class TestInvitationRestApi extends TestRestApi {
     assertEquals(HTTPStatus.OK, response.getStatus());
     InvitationResource invitation = (InvitationResource)response.getEntity();
     assertEquals("mary", invitation.getParticipant());
+    String eventHref = "/v1/calendar/events/" + gEvt.getId();
+    assertEquals(eventHref, invitation.getEvent());
+    
+    //expand=event
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary" + "?expand=event"
+                       , baseURI, h, null, writer);
+    assertEquals(HTTPStatus.OK, response.getStatus());
+    invitation = (InvitationResource)response.getEntity();
+    assertTrue(invitation.getEvent() instanceof EventResource);
+    assertEquals(gEvt.getId(), ((EventResource)invitation.getEvent()).getId());
     
     uEvt.addParticipant("john", "no");
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, false);
@@ -277,9 +288,9 @@ public class TestInvitationRestApi extends TestRestApi {
     response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
     //returnSize is always true for getInvitationFromEvent
-    assertEquals(1, invitation.getFullSize());
+    assertEquals(1, invitation.getSize());
     assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LINK));
 
     login("root");  
@@ -287,8 +298,8 @@ public class TestInvitationRestApi extends TestRestApi {
     response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
+    assertEquals(2, invitation.getData().size());
     assertEquals(2, invitation.getSize());
-    assertEquals(2, invitation.getFullSize());
     assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LINK));
   }
   
@@ -305,8 +316,8 @@ public class TestInvitationRestApi extends TestRestApi {
                                          + "?status=yes", baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
+    assertEquals(1, invitation.getData().size());
     assertEquals(1, invitation.getSize());
-    assertEquals(1, invitation.getFullSize());
     InvitationResource ivt = (InvitationResource)invitation.getData().iterator().next();
     assertEquals("yes", ivt.getStatus());
   }  
@@ -354,9 +365,8 @@ public class TestInvitationRestApi extends TestRestApi {
     response = service(HTTPMethods.POST, CAL_BASE_URI + EVENT_URI + uEvt.getId() +
                                          INVITATION_URI + queryParams, baseURI, h, null, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
-    InvitationResource invite = (InvitationResource)response.getEntity();
-    assertEquals("john", invite.getParticipant());
-    assertEquals("pending", invite.getStatus());
+    String location = "[/v1/calendar/invitations/" + uEvt.getId() + ":john]";
+    assertEquals(location, response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION).toString());
 
     response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
@@ -376,7 +386,7 @@ public class TestInvitationRestApi extends TestRestApi {
     ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
     
     Collection data = invitation.getData();
     Map<String, Object> dataMap = (Map<String, Object>) data.iterator().next();
@@ -410,9 +420,9 @@ public class TestInvitationRestApi extends TestRestApi {
     ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
-    assertEquals(1, invitation.getSize());
+    assertEquals(1, invitation.getData().size());
     if (supportReturnSize) {
-      assertEquals(-1, invitation.getFullSize());      
+      assertEquals(-1, invitation.getSize());      
     }
     
     queryParams = "?offset=10&limit=11&returnSize=true";
@@ -422,8 +432,8 @@ public class TestInvitationRestApi extends TestRestApi {
     InvitationResource ivt = (InvitationResource)invitation.getData().iterator().next();
     assertEquals(expected, ivt.getParticipant());
     //By default, rest api only allow to load maximum 10 results
-    assertEquals(10, invitation.getSize());
-    assertEquals(21, invitation.getFullSize());
+    assertEquals(10, invitation.getData().size());
+    assertEquals(21, invitation.getSize());
     assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LINK));
   }
 }

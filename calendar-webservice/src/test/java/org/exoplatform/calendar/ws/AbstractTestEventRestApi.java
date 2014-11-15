@@ -23,11 +23,16 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.HEADER_LINK;
 import java.util.Collection;
 
 import org.exoplatform.calendar.service.CalendarEvent;
+import org.exoplatform.calendar.service.EventCategory;
+import org.exoplatform.calendar.ws.bean.CalendarResource;
+import org.exoplatform.calendar.ws.bean.CategoryResource;
 import org.exoplatform.calendar.ws.bean.CollectionResource;
 import org.exoplatform.calendar.ws.bean.EventResource;
 import org.exoplatform.calendar.ws.bean.Resource;
+import org.exoplatform.calendar.ws.bean.TaskResource;
 import org.exoplatform.common.http.HTTPMethods;
 import org.exoplatform.common.http.HTTPStatus;
+import org.exoplatform.commons.utils.ISO8601;
 import org.exoplatform.services.rest.impl.ContainerResponse;
 import org.exoplatform.services.rest.impl.MultivaluedMapImpl;
 import org.exoplatform.services.rest.tools.ByteArrayContainerResponseWriter;
@@ -56,7 +61,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     CollectionResource calR = (CollectionResource)response.getEntity();
     Collection evs = calR.getData();
     assertEquals(10, evs.size());
-    assertEquals(-1, calR.getFullSize());
+    assertEquals(-1, calR.getSize());
     assertNull(response.getHttpHeaders().get(HEADER_LINK));
     
     String queryParams = "?returnSize=true";
@@ -64,7 +69,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     calR = (CollectionResource)response.getEntity();
     evs = calR.getData();
     assertEquals(10, evs.size());
-    assertEquals(20, calR.getFullSize());
+    assertEquals(20, calR.getSize());
     assertNotNull(response.getHttpHeaders().get(HEADER_LINK));
     
     login("john");
@@ -162,16 +167,16 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     ContainerResponse response = service(HTTPMethods.GET, uri + "notExists", baseURI, h, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
-    
-    CalendarEvent uEvt = createEvent(userCalendar);
-    uEvt.setEventType(eventType);
+       
+    CalendarEvent uEvt = createEvent(userCalendar);    
+    uEvt.setEventType(eventType);    
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
     //
     response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     Resource calR0 = (Resource)response.getEntity();
     assertNotNull(calR0);
-    assertEquals(uEvt.getId(), calR0.getId());
+    assertEquals(uEvt.getId(), calR0.getId());    
     
     login("john");
     //
@@ -246,9 +251,14 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     uEvt.setEventType(eventType);
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
 
-    EventResource eventResource = new EventResource(uEvt);
+    Resource resource = null;
+    if (CalendarEvent.TYPE_EVENT.equals(eventType)) {
+      resource = new EventResource(uEvt, "");      
+    } else {
+      resource = new TaskResource(uEvt, ""); 
+    }
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(eventResource);
+    JsonValue json = generatorImpl.createJsonObject(resource);
 
     byte[] data = json.toString().getBytes("UTF-8");
     h = new MultivaluedMapImpl();

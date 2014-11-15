@@ -23,6 +23,8 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.HEADER_LINK;
 import static org.exoplatform.calendar.ws.CalendarRestApi.ICS_URI;
 
+import java.util.Map;
+
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.ws.bean.CalendarResource;
@@ -35,13 +37,20 @@ import org.exoplatform.services.rest.tools.ByteArrayContainerResponseWriter;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
 
-/**
- * @author <a href="mailto:haithanh0809@gmail.com">Nguyen Thanh Hai</a>
- *
- * Mar 21, 2014
- */
 public class TestCalendarRestApi extends TestRestApi {
 
+  @SuppressWarnings("unchecked")
+  public void testGetSubResources() throws Exception {
+    login("root");
+    
+    ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI, baseURI, h, null, writer);
+    assertEquals(HTTPStatus.OK, response.getStatus());    
+    Map<String, String[]> subResources = (Map<String, String[]>)response.getEntity();
+    String[] resources = subResources.get("subResourcesHref");
+    assertEquals(33, resources.length);
+  }
+  
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void testGetCalendars() throws Exception {
     login("john");
@@ -51,16 +60,23 @@ public class TestCalendarRestApi extends TestRestApi {
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<CalendarResource> calR = (CollectionResource<CalendarResource>)response.getEntity();
+    assertEquals(2, calR.getData().size());
     assertEquals(2, calR.getSize());
-    assertEquals(2, calR.getFullSize());
-
+    
+    //url should be absolute, we'll improve this in unit test later
+    CalendarResource cal = calR.getData().iterator().next();
+    String ics = "/v1/calendar/calendars/" + cal.getId() + "/ics";
+    assertEquals(ics, cal.getIcsURL());
+    String href =   "/v1/calendar/calendars/" + cal.getId();
+    assertEquals(href, cal.getHref());
+    
     login("root");
     //
     response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<CalendarResource>)response.getEntity();
+    assertEquals(3, calR.getData().size());
     assertEquals(3, calR.getSize());
-    assertEquals(3, calR.getFullSize());
 
     for(int i = 0; i < 10; i ++) {
       createPersonalCalendar("root" + " myCalendar2" + i, "root");
@@ -68,9 +84,11 @@ public class TestCalendarRestApi extends TestRestApi {
 
     response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, h, null, writer);
     calR = (CollectionResource)response.getEntity();
-    assertEquals(10, calR.getSize());
-    assertEquals(13, calR.getFullSize());
-    assertNotNull(response.getHttpHeaders().get(HEADER_LINK));    
+    assertEquals(10, calR.getData().size());
+    assertEquals(13, calR.getSize());
+    String header = "[</v1/calendar/calendars/?offset=10&limit=10>;rel=\"next\"," + 
+                              "</v1/calendar/calendars/?offset=0&limit=10>;rel=\"first\",</v1/calendar/calendars/?offset=10&limit=3>;rel=\"last\"]";    
+    assertEquals(header, response.getHttpHeaders().get(HEADER_LINK).toString());
   }
 
   public void testCreateCalendar() throws Exception {
@@ -81,7 +99,7 @@ public class TestCalendarRestApi extends TestRestApi {
     cal.setName("myCal") ;
     cal.setCalendarOwner("root");
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal));
+    JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     byte[] data = json.toString().getBytes("UTF-8");
     
     h.putSingle("content-type", "application/json");
@@ -90,8 +108,8 @@ public class TestCalendarRestApi extends TestRestApi {
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     ContainerResponse response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
-    CalendarResource calR = (CalendarResource)response.getEntity();
-    assertEquals(cal.getName(), calR.getName());
+    String location = "[/v1/calendar/calendars/" + cal.getId() + "]";
+    assertEquals(location, response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION).toString());
 
     //demo is not owner of root calendar    
     login("demo");
@@ -102,18 +120,16 @@ public class TestCalendarRestApi extends TestRestApi {
     cal = new Calendar() ;
     cal.setName("myCal") ;
     cal.setGroups(new String[] {"/platform/users"});
-    json = generatorImpl.createJsonObject(new CalendarResource(cal));
+    json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     data = json.toString().getBytes("UTF-8");
     //
     login("demo", "/platform/users:member");
     response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
-    calR = (CalendarResource)response.getEntity();
-    assertEquals(cal.getName(), calR.getName());
     
     //demo can't create cal for group that he's not in
     cal.setGroups(new String[] {"/platform/admin"});
-    json = generatorImpl.createJsonObject(new CalendarResource(cal));
+    json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     data = json.toString().getBytes("UTF-8");
     response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
@@ -161,7 +177,7 @@ public class TestCalendarRestApi extends TestRestApi {
     cal.setName("myCal") ;
     cal.setCalendarOwner("root");
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal));
+    JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     byte[] data = json.toString().getBytes("UTF-8");
 
     h = new MultivaluedMapImpl();

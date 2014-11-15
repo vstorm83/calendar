@@ -17,17 +17,12 @@
 
 package org.exoplatform.calendar.ws.bean;
 
-import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
-import static org.exoplatform.calendar.ws.CalendarRestApi.CALENDAR_URI;
-
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.Utils;
+import org.exoplatform.calendar.ws.CalendarRestApi;
 
 public class CalendarResource extends Resource {
 
-  /**
-   * 
-   */
   private static final long serialVersionUID = -4500214043430048066L;
 
   private String name;
@@ -41,13 +36,20 @@ public class CalendarResource extends Resource {
   private String[] groups;
   private String publicURL;
   private String privateURL;
-  private String icsURL;
+  private String icsURL; 
   
-  public CalendarResource() {}
+  public CalendarResource() {
+    super(null, null);
+  }
 
-  public CalendarResource(Calendar data) {
-    setId(data.getId());
-    setHref(new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI).append(data.getId()).toString());
+  public CalendarResource(Calendar data, String basePath) {
+    super(data.getId(), basePath);
+    
+    StringBuilder calUri = new StringBuilder(basePath);
+    calUri.append(CalendarRestApi.CALENDAR_URI).append(getId());    
+    setHref(calUri.toString());
+    icsURL = getHref() + CalendarRestApi.ICS_URI;
+    
     name = data.getName();
     description = data.getDescription();
     type = String.valueOf(data.getCalType());
@@ -70,8 +72,7 @@ public class CalendarResource extends Resource {
     editPermission = sb.toString();
     groups = data.getGroups();
     publicURL = data.getPublicUrl();
-    privateURL = data.getPrivateUrl();
-    icsURL = new StringBuilder(CAL_BASE_URI).append(getId()).append(icsURL).toString();
+    privateURL = data.getPrivateUrl();    
   }
 
   public String getName() {

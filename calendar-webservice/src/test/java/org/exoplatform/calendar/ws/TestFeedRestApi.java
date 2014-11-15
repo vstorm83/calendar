@@ -140,18 +140,18 @@ public class TestFeedRestApi extends TestRestApi {
     StringBuilder sb = new StringBuilder("{\"name\":\"Calendar_Feed\"");
     sb.append(",\"calendars\":[\"/calendar/calendars/").append(userCalendar.getId()).append("\",\"/calendar/calendars/").append(groupCalendar.getId()).append("\"]");
     sb.append(",\"calendarIds\":[\"").append(userCalendar.getId()).append("\",\"").append(groupCalendar.getId()).append("\"]");
-    sb.append(",\"rss\":\"/calendar/feeds/Calendar_Feed/rss\",\"id\":\"Calendar_Feed\",\"href\":\"/calendar/feeds/Calendar_Feed\"");
+    sb.append(",\"rss\":\"/v1/calendar/feeds/Calendar_Feed/rss\",\"id\":\"Calendar_Feed\",\"href\":\"/v1/calendar/feeds/Calendar_Feed\"");
     sb.append("}");
     assertJSONP(sb.toString(), data);
 
     response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars(offset:0,limit:1)&jsonp=callback", baseURI, h, null, writer);
     data = (String) response.getEntity();
     JsonGeneratorImpl generator = new JsonGeneratorImpl();
-    JsonValue value = generator.createJsonObject(new CalendarResource(userCalendar));
+    JsonValue value = generator.createJsonObject(new CalendarResource(userCalendar, ""));
     sb = new StringBuilder("{\"name\":\"Calendar_Feed\"");
     sb.append(",\"calendars\":[").append(value).append("]");
     sb.append(",\"calendarIds\":[\"").append(userCalendar.getId()).append("\",\"").append(groupCalendar.getId()).append("\"]");
-    sb.append(",\"rss\":\"/calendar/feeds/Calendar_Feed/rss\",\"id\":\"Calendar_Feed\",\"href\":\"/calendar/feeds/Calendar_Feed\"");
+    sb.append(",\"rss\":\"/v1/calendar/feeds/Calendar_Feed/rss\",\"id\":\"Calendar_Feed\",\"href\":\"/v1/calendar/feeds/Calendar_Feed\"");
     sb.append("}");    
     assertJSONP(sb.toString(), data);
     
@@ -166,6 +166,7 @@ public class TestFeedRestApi extends TestRestApi {
     JSONParser parser = new JSONParser();
 
     JSONObject expected = (JSONObject)parser.parse(string);
+    System.out.println(expected);
     JSONObject result = (JSONObject)parser.parse(data);
     assertEquals(expected.get("name"), result.get("name"));
     assertEquals(expected.get("id"), result.get("id"));
@@ -179,7 +180,7 @@ public class TestFeedRestApi extends TestRestApi {
     FeedData feedData = new FeedData();
     feedData.setTitle(calendarFeedNane);
     feedData.setUrl(rssData.getUrl());    
-    FeedResource<String> rs = new FeedResource<String>(feedData, new String[]{userCalendar.getId()});
+    FeedResource rs = new FeedResource(feedData, new String[]{userCalendar.getId()}, "");
     //FeedResource<String> rs = new FeedResource<String>(feedData, null);
     
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();

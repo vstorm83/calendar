@@ -28,14 +28,14 @@ import java.util.LinkedList;
 
 import org.exoplatform.calendar.service.FeedData;
 
-public class FeedResource<T extends Serializable> extends Resource {
+public class FeedResource extends Resource {
   private static final long serialVersionUID = 7911451293360539750L;
 
   private String            name;
 
   private String                    rss;
 
-  private Collection<T>                  calendars;
+  private Collection<Serializable>                  calendars;
 
   /**
    * This field is introduced for user can update calendars in Feed
@@ -44,19 +44,22 @@ public class FeedResource<T extends Serializable> extends Resource {
    */
   private String[] calendarIds = null;
 
-  public FeedResource() {}
+  public FeedResource() {
+    super(null, null);
+  }
   
-  public FeedResource(FeedData data, String[] calendarids) {
-    setId(data.getFeed());
-    setHref(new StringBuilder(CAL_BASE_URI).append(FEED_URI).append(data.getTitle()).toString());
+  public FeedResource(FeedData data, String[] calendarids, String basePath) {
+    super(data.getFeed(), basePath);
+
+    setHref(new StringBuilder(basePath).append(FEED_URI).append(data.getTitle()).toString());
     name = data.getTitle();
     rss = new StringBuilder(CAL_BASE_URI).append(FEED_URI)
                                         .append(data.getTitle())
                                         .append(RSS_URI)
                                         .toString();
-    calendars = new LinkedList<T>();
+    calendars = new LinkedList<Serializable>();
     for (String id : calendarids) {
-      calendars.add((T) new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI).append(id).toString());      
+      calendars.add(new StringBuilder(basePath).append(CALENDAR_URI).append(id).toString());      
     }
     this.calendarIds = calendarids;
   }
@@ -77,7 +80,7 @@ public class FeedResource<T extends Serializable> extends Resource {
     this.rss = rss;
   }
 
-  public Collection<T> getCalendars() {
+  public Collection<Serializable> getCalendars() {
     return calendars;
   }
 
@@ -88,7 +91,7 @@ public class FeedResource<T extends Serializable> extends Resource {
    * @param calendars
    * @return this
    */
-  public FeedResource<T> setCals(Collection<T> calendars) {
+  public FeedResource setCals(Collection<Serializable> calendars) {
     this.calendars = calendars;
     return this;
   }

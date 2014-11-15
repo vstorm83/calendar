@@ -18,55 +18,72 @@
 package org.exoplatform.calendar.ws.bean;
 
 import static org.exoplatform.calendar.ws.CalendarRestApi.CALENDAR_URI;
-import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.CATEGORY_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.EVENT_URI;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.net.URLEncoder;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.exoplatform.calendar.service.Attachment;
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.Reminder;
+import org.exoplatform.calendar.service.Utils;
+import org.exoplatform.calendar.ws.CalendarRestApi;
 import org.exoplatform.commons.utils.ISO8601;
 import org.exoplatform.webservice.cs.bean.End;
 
-public class EventResource<T extends Serializable> extends Resource {
+public class EventResource extends Resource {
   private static final long serialVersionUID = 9085055105843346382L;
   
   private String            subject;
   private String                    description;
-  private Date                      from;
-  private Date                      to;
-  private T                    calendar;
-  private String[]                  categories;
+  private String                      from;
+  private String                      to;
+  private Serializable           calendar;
+  private Serializable[]                  categories;
   private String                    location;
   private String                       priority;
   private RepeatResource            repeat;
   private String                    recurrenceId;
-  private String                    originalEvent;
+  private Serializable                    originalEvent;
   private Reminder[]                reminder;
-  private Attachment[]              attachments;
+  private Serializable[]              attachments;
   private String[]                  participants;
   private String                    privacy;
   private String                    availability;  
-
-  public EventResource() {}
   
-  public EventResource(CalendarEvent data) {
-    setId(data.getId());
-    setHref(new StringBuilder(CAL_BASE_URI).append(EVENT_URI).append(data.getId()).toString());
+  public EventResource() {
+    super(null, null);
+  }
+
+  public EventResource(CalendarEvent data, String basePath) throws Exception {
+    super(data.getId(), basePath);
+
+    StringBuilder href = new StringBuilder(basePath).append(EVENT_URI).append(data.getId()); 
+    setHref(href.toString());
     subject = data.getSummary();
     description = data.getDescription();
-    from = data.getFromDateTime();
-    to = data.getToDateTime();
-    calendar = (T) new StringBuilder(CAL_BASE_URI).append(CALENDAR_URI)
+    
+    Calendar fromCal = Utils.getInstanceTempCalendar();
+    fromCal.setTime(data.getFromDateTime());
+    from = ISO8601.format(fromCal);
+    
+    Calendar toCal = Utils.getInstanceTempCalendar();
+    toCal.setTime(data.getFromDateTime());
+    to = ISO8601.format(toCal);
+    
+    calendar = new StringBuilder(basePath).append(CALENDAR_URI)
                                              .append(data.getCalendarId())
                                              .toString();
-    categories = new String[] { new StringBuilder(CAL_BASE_URI).append(CATEGORY_URI)
-                                                              .append(data.getEventCategoryId())
-                                                              .toString() };
+    if (data.getEventCategoryId() != null) {
+      categories = new String[] { new StringBuilder(basePath).append(CATEGORY_URI)
+          .append(data.getEventCategoryId())
+          .toString() };      
+    }
     location = data.getLocation();
     this.priority = data.getPriority();
 
@@ -98,13 +115,24 @@ public class EventResource<T extends Serializable> extends Resource {
                                 data.getExceptionIds(),
                                 end);    
     recurrenceId = data.getOriginalReference();
-    originalEvent = new StringBuffer(CAL_BASE_URI).append(EVENT_URI)
-                                                  .append(data.getOriginalReference())
-                                                  .toString();
+    if (data.getOriginalReference() != null) {
+      originalEvent = new StringBuilder(basePath).append(EVENT_URI)
+          .append(data.getOriginalReference())
+          .toString();
+    }
     if (data.getReminders() != null)
       reminder = data.getReminders().toArray(new Reminder[] {});
-    if (data.getAttachment() != null)
-      attachments = data.getAttachment().toArray(new Attachment[] {});
+    
+    if (data.getAttachment() != null) {
+      List<String> atts = new LinkedList<String>();
+      
+      for (Attachment att : data.getAttachment()) {
+        atts.add(new StringBuilder(basePath).append(CalendarRestApi.ATTACHMENT_URI)
+                 .append(URLEncoder.encode(att.getDataPath(), "ISO-8859-1"))
+                 .toString());
+      }
+      attachments = atts.toArray(new String[atts.size()]);
+    }
     participants = data.getParticipant();
     privacy = data.getStatus();
     availability = data.getEventState();
@@ -126,36 +154,36 @@ public class EventResource<T extends Serializable> extends Resource {
     this.description = description;
   }
 
-  public Date getFrom() {
+  public String getFrom() {
     return from;
   }
 
-  public void setFrom(Date from) {
+  public void setFrom(String from) {
     this.from = from;
   }
 
-  public Date getTo() {
+  public String getTo() {
     return to;
   }
 
-  public void setTo(Date to) {
+  public void setTo(String to) {
     this.to = to;
   }
 
-  public T getCalendar() {
+  public Serializable getCalendar() {
     return calendar;
   }
 
-  public EventResource<T> setCal(T calendar) {
+  public EventResource setCal(Serializable calendar) {
     this.calendar = calendar;
     return this;
   }
 
-  public String[] getCategories() {
+  public Serializable[] getCategories() {
     return categories;
   }
 
-  public void setCategories(String[] categories) {
+  public void setCats(Serializable[] categories) {
     this.categories = categories;
   }
 
@@ -191,11 +219,11 @@ public class EventResource<T extends Serializable> extends Resource {
     this.recurrenceId = recurrenceId;
   }
 
-  public String getOriginalEvent() {
+  public Serializable getOriginalEvent() {
     return originalEvent;
   }
 
-  public void setOriginalEvent(String originalEvent) {
+  public void setOEvent(Serializable originalEvent) {
     this.originalEvent = originalEvent;
   }
 
@@ -207,11 +235,11 @@ public class EventResource<T extends Serializable> extends Resource {
     this.reminder = reminder;
   }
 
-  public Attachment[] getAttachments() {
+  public Serializable[] getAttachments() {
     return attachments;
   }
 
-  public void setAttachments(Attachment[] attachments) {
+  public void setAtts(Serializable[] attachments) {
     this.attachments = attachments;
   }
 

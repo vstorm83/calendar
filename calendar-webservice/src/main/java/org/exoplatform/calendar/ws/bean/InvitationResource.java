@@ -17,7 +17,6 @@
 
 package org.exoplatform.calendar.ws.bean;
 
-import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.EVENT_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.INVITATION_URI;
 
@@ -25,25 +24,33 @@ import java.io.Serializable;
 
 import org.exoplatform.calendar.service.Invitation;
 
-public class InvitationResource extends Resource implements Serializable {
+public class InvitationResource extends Resource {
   private static final long serialVersionUID = -5546515171185717545L;
 
-  private String            event;
+  private Serializable            event;
 
   private String            participant;
 
   private String            status;
 
-  public InvitationResource(Invitation data) {
-    setId(data.getId());
-    setHref(new StringBuffer(CAL_BASE_URI).append(INVITATION_URI).append(data.getId()).toString());
-    event = new StringBuffer(CAL_BASE_URI).append(EVENT_URI).append(data.getEventId()).toString();
+  public InvitationResource() {
+    super(null, null);
+  }
+  
+  public InvitationResource(Invitation data, String basePath) {
+    super(data.getId(), basePath);
+    setHref(new StringBuffer(basePath).append(INVITATION_URI).append(data.getId()).toString());
+    event = new StringBuffer(basePath).append(EVENT_URI).append(data.getEventId()).toString();
     this.participant = data.getParticipant();
     this.status = data.getStatus();
   }
 
-  public String getEvent() {
+  public Serializable getEvent() {
     return event;
+  }
+  
+  public void setEvt(Serializable event) {
+    this.event = event;
   }
 
   public String getParticipant() {

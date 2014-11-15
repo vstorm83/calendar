@@ -17,7 +17,6 @@
 
 package org.exoplatform.calendar.ws.bean;
 
-import static org.exoplatform.calendar.ws.CalendarRestApi.CAL_BASE_URI;
 import static org.exoplatform.calendar.ws.CalendarRestApi.CATEGORY_URI;
 
 import org.exoplatform.calendar.service.EventCategory;
@@ -26,9 +25,15 @@ public class CategoryResource extends Resource {
   private static final long serialVersionUID = 6940106249883390857L;
   private String name;
   
-	public CategoryResource(EventCategory data) {
-	  setId(data.getId());
-	  setHref(new StringBuffer(CAL_BASE_URI).append(CATEGORY_URI).append(data.getId()).toString());
+  public CategoryResource() {
+    super(null, null);
+  }
+  
+	public CategoryResource(EventCategory data, String basePath) {
+	  super(data.getId(), basePath);
+	  StringBuilder path = new StringBuilder(basePath);
+	  path.append(CATEGORY_URI).append(getId());
+	  setHref(path.toString());
 	  name = data.getName();
 	}
   public String getName() {

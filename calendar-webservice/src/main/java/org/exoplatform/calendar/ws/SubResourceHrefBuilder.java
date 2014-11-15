@@ -17,10 +17,6 @@
 
 package org.exoplatform.calendar.ws;
 
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.UriInfo;
 
@@ -32,14 +28,14 @@ import java.util.List;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 
 public class SubResourceHrefBuilder {
-  private List<String[]> subResources = new LinkedList<String[]>();
+  private List<String> subResources = new LinkedList<String>();
   
   public SubResourceHrefBuilder(ResourceContainer restService) {
     subResources = getResourcesInfo(restService);
   }
 
-  public String[][] buildResourceMap(UriInfo uriInfo) {
-    List<String[]> resources = new LinkedList<String[]>();
+  public String[] buildResourceMap(UriInfo uriInfo) {
+    List<String> resources = new LinkedList<String>();
         
     StringBuilder uriBuilder = new StringBuilder();
     URI uri = uriInfo.getRequestUri();
@@ -47,14 +43,14 @@ public class SubResourceHrefBuilder {
     uriBuilder.append(uri.getHost()).append(":").append(uri.getPort());
     String base = uriBuilder.toString();
     
-    for (String[] rs : subResources) {
-      resources.add(new String[] {rs[0], base + rs[1]});
+    for (String rs : subResources) {
+      resources.add(base + rs);
     }
-    return resources.toArray(new String[2][resources.size()]);
+    return resources.toArray(new String[resources.size()]);
   }
   
-  private List<String[]> getResourcesInfo(ResourceContainer restService) {
-    List<String[]> subResources = new LinkedList<String[]>();
+  private List<String> getResourcesInfo(ResourceContainer restService) {
+    List<String> subResources = new LinkedList<String>();
     
     Path path = restService.getClass().getAnnotation(Path.class);
     if (path == null) {
@@ -66,20 +62,9 @@ public class SubResourceHrefBuilder {
       Path mPath = method.getAnnotation(Path.class);
       
       if (mPath != null) {
-        String methodPath = mPath.value();
-        String httpMethod = "";
+        String methodPath = mPath.value();       
         
-        if (method.getAnnotation(GET.class) != null) {
-          httpMethod = GET.class.getSimpleName();
-        } else if (method.getAnnotation(POST.class) != null) {
-          httpMethod = POST.class.getSimpleName();
-        } else if (method.getAnnotation(PUT.class) != null) {
-          httpMethod = PUT.class.getSimpleName();
-        } else if (method.getAnnotation(DELETE.class) != null) {
-          httpMethod = DELETE.class.getSimpleName();
-        }
-        
-        subResources.add(new String[] {httpMethod, basePath + methodPath});
+        subResources.add(basePath + methodPath);
       }
     }
     

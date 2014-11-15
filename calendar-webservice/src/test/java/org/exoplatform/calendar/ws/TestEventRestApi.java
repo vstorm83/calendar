@@ -41,10 +41,13 @@ import java.util.TimeZone;
 import org.exoplatform.calendar.service.Attachment;
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
+import org.exoplatform.calendar.service.EventCategory;
 import org.exoplatform.calendar.service.Utils;
+import org.exoplatform.calendar.ws.bean.AttachmentResource;
+import org.exoplatform.calendar.ws.bean.CalendarResource;
+import org.exoplatform.calendar.ws.bean.CategoryResource;
 import org.exoplatform.calendar.ws.bean.CollectionResource;
 import org.exoplatform.calendar.ws.bean.EventResource;
-import org.exoplatform.calendar.ws.bean.Resource;
 import org.exoplatform.common.http.HTTPMethods;
 import org.exoplatform.common.http.HTTPStatus;
 import org.exoplatform.commons.utils.ISO8601;
@@ -53,6 +56,8 @@ import org.exoplatform.services.rest.impl.MultivaluedMapImpl;
 import org.exoplatform.services.rest.tools.ByteArrayContainerResponseWriter;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
+
+import com.googlecode.mp4parser.boxes.ultraviolet.AssetInformationBox;
 
 /**
  * @author <a href="mailto:haithanh0809@gmail.com">Nguyen Thanh Hai</a>
@@ -92,25 +97,39 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
   public void testGetEventById_Shared() throws Exception {
     runTestGetEventById_Shared(CAL_BASE_URI + EVENT_URI, CalendarEvent.TYPE_EVENT);
   }
-  
-  @SuppressWarnings("unchecked")
+    
   public void testGetEventById_Expand() throws Exception {    
+    EventCategory cat = createEventCategory("root", "testCategory");
+    
     CalendarEvent uEvt = createEvent(userCalendar);
+    uEvt.setEventCategoryId(cat.getId());
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
     
     login("root");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + 
-                                         uEvt.getId() + "?expand=calendar", baseURI, h, null, writer);
+                                         uEvt.getId(), baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());    
-    Resource calR0 = (Resource)response.getEntity();
+    EventResource calR0 = (EventResource)response.getEntity();
     assertNotNull(calR0);
     assertEquals(uEvt.getId(), calR0.getId());
+    String calHref = "/v1/calendar/calendars/" + uEvt.getCalendarId();
+    assertEquals(calHref, calR0.getCalendar());
     
-    EventResource calR1 = (EventResource) response.getEntity();
-    assertNotNull(calR1.getCalendar());
-//    assertEquals(calR1.getCalendar().getName(), userCalendar.getName());
+    //expand=calendar
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + 
+                                         uEvt.getId() + "?expand=calendar", baseURI, h, null, writer);
+    calR0 = (EventResource)response.getEntity();
+    assertTrue(calR0.getCalendar() instanceof CalendarResource);
+    assertEquals(uEvt.getCalendarId(), ((CalendarResource)calR0.getCalendar()).getId());
+    
+    //expand=categories
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + 
+                                         uEvt.getId() + "?expand=categories", baseURI, h, null, writer);
+    calR0 = (EventResource)response.getEntity();
+    assertTrue(calR0.getCategories() instanceof CategoryResource[]);
+    assertEquals(1, calR0.getCategories().length);
   }
   
   public void testUpdateEvent() throws Exception {
@@ -141,13 +160,27 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + "notExists" + ATTACHMENT_URI, baseURI, h, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
 
-    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + ATTACHMENT_URI, baseURI, h, null, writer);
-    assertEquals(HTTPStatus.OK, response.getStatus());
+    //expand=attachments
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + "?expand=attachments", baseURI, h, null, writer);
+    EventResource eventRs = (EventResource)response.getEntity();
+    assertTrue(eventRs.getAttachments() instanceof AttachmentResource[]);
+    assertEquals(12, eventRs.getAttachments().length);
+    
+    //expand=attachments(offset:1,limit:1)
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + 
+                       "?expand=attachments(offset:1,limit:1)", baseURI, h, null, writer);
+    eventRs = (EventResource)response.getEntity();
+    assertEquals(1, eventRs.getAttachments().length);
+    AttachmentResource attRs = (AttachmentResource)eventRs.getAttachments()[0];
+    assertEquals("image-1.png", attRs.getName());
+    
 
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + ATTACHMENT_URI, baseURI, h, null, writer);
+    assertEquals(HTTPStatus.OK, response.getStatus());    
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
     List<?> evs = (ArrayList<?>)calR.getData();
     assertEquals(10, evs.size());
-    assertEquals(12, calR.getFullSize());
+    assertEquals(12, calR.getSize());
     assertNotNull(response.getHttpHeaders().get(HEADER_LINK));
     
     login("john");
@@ -183,7 +216,8 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     response = service(HTTPMethods.POST, CAL_BASE_URI + EVENT_URI + uEvt.getId() + 
                        ATTACHMENT_URI, baseURI, h, data, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
-    assertTrue(response.getEntity() instanceof CollectionResource);
+    String location = "[/v1/calendar/" + uEvt.getId() + "/attachments/]";
+    assertEquals(location, response.getHttpHeaders().get("Location").toString());
   }
 
   @SuppressWarnings("rawtypes")
@@ -204,8 +238,8 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                        EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource calR = (CollectionResource)response.getEntity();  
-    assertEquals(0, calR.getSize());
-    assertEquals(-1, calR.getFullSize());
+    assertEquals(0, calR.getData().size());
+    assertEquals(-1, calR.getSize());
     assertNull(response.getHttpHeaders().get(HEADER_LINK));
 
     login("root");
@@ -213,8 +247,8 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId() + 
                        EVENT_URI + queryParams , baseURI, h, null, writer);
     calR = (CollectionResource)response.getEntity();
+    assertEquals(1, calR.getData().size());
     assertEquals(1, calR.getSize());
-    assertEquals(1, calR.getFullSize());
     assertNotNull(response.getHttpHeaders().get(HEADER_LINK));
     
     uEvt.addParticipant("john", "");
@@ -226,7 +260,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                        EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource)response.getEntity();
-    assertEquals(1, calR.getSize());
+    assertEquals(1, calR.getData().size());
   }
 
   public void testGetEventsByCalendar_Public() throws Exception {
@@ -241,7 +275,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     //john can't read private calendar
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
-    assertEquals(0, calR.getSize());
+    assertEquals(0, calR.getData().size());
     
     userCalendar.setPublicUrl("test/uri.ics");
     calendarService.saveUserCalendar("root", userCalendar, false);
@@ -250,7 +284,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                        EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
-    assertEquals(1, calR.getSize());
+    assertEquals(1, calR.getData().size());
   }
 
   public void testGetEventsByCalendar_Group() throws Exception {
@@ -265,7 +299,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                                          adminCal.getId() + EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
-    assertEquals(1, calR.getSize());
+    assertEquals(1, calR.getData().size());
     
     login("mary");
     //mary is not in admin group
@@ -273,7 +307,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                        adminCal.getId() + EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
-    assertEquals(0, calR.getSize());
+    assertEquals(0, calR.getData().size());
   }
   
   public void testGetEventsByCalendar_Shared() throws Exception {
@@ -287,7 +321,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                                          sharedCalendar.getId() + EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
-    assertEquals(1, calR.getSize());
+    assertEquals(1, calR.getData().size());
     
     login("mary");
     //sharedCalendar is not shared to mary
@@ -295,7 +329,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                                          sharedCalendar.getId() + EVENT_URI , baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
-    assertEquals(0, calR.getSize());
+    assertEquals(0, calR.getData().size());
   }
   
   @SuppressWarnings("unchecked")
@@ -316,8 +350,8 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
                                          userCalendar.getId() + EVENT_URI + queryParams, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<Map<String, ?>> calR = (CollectionResource<Map<String, ?>>)response.getEntity();
-    assertEquals(1, calR.getSize());
-    assertEquals(10, calR.getFullSize());
+    assertEquals(1, calR.getData().size());
+    assertEquals(10, calR.getSize());
     Collection<Map<String, ?>> data = calR.getData();
     Map<String, ?> event = data.iterator().next();
     //event at offset 5, only return field id
@@ -338,7 +372,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     uEvt.setSummary("test");
     
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(new EventResource(uEvt));
+    JsonValue json = generatorImpl.createJsonObject(new EventResource(uEvt, ""));
     byte[] data = json.toString().getBytes("UTF-8");
     h = new MultivaluedMapImpl();
     h.putSingle("content-type", "application/json");
@@ -359,17 +393,15 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     login("root");
     response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId() + 
                        EVENT_URI, baseURI, h, data, writer);
-    assertEquals(HTTPStatus.CREATED, response.getStatus());
-    EventResource entity = (EventResource) response.getEntity();
-    assertNotNull(entity);
-    assertEquals(uEvt.getSummary(), entity.getSubject());
+    assertEquals(HTTPStatus.CREATED, response.getStatus()); 
+    assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION).toString());
   }
   
   public void testCreateEventForCalendar_Group() throws Exception {
     CalendarEvent gEvt = createEvent(groupCalendar);
     
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(new EventResource(gEvt));
+    JsonValue json = generatorImpl.createJsonObject(new EventResource(gEvt, ""));
     byte[] data = json.toString().getBytes("UTF-8");
     h = new MultivaluedMapImpl();
     h.putSingle("content-type", "application/json");
@@ -385,16 +417,15 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     login("root");
     response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId() + 
                        EVENT_URI, baseURI, h, data, writer);
-    assertEquals(HTTPStatus.CREATED, response.getStatus());
-    EventResource entity = (EventResource) response.getEntity();
-    assertNotNull(entity);
+    assertEquals(HTTPStatus.CREATED, response.getStatus()); 
+    assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION));
   }
   
   public void testCreateEventForCalendar_Shared() throws Exception {
     CalendarEvent sEvt = createEvent(sharedCalendar);
     
     JsonGeneratorImpl generatorImpl = new JsonGeneratorImpl();
-    JsonValue json = generatorImpl.createJsonObject(new EventResource(sEvt));
+    JsonValue json = generatorImpl.createJsonObject(new EventResource(sEvt, ""));
     byte[] data = json.toString().getBytes("UTF-8");
     h = new MultivaluedMapImpl();
     h.putSingle("content-type", "application/json");
@@ -406,8 +437,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     ContainerResponse response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId()
                                          + EVENT_URI, baseURI, h, data, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
-    EventResource entity = (EventResource) response.getEntity();
-    assertNotNull(entity);
+    assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION).toString());
   }
   
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -452,7 +482,7 @@ public class TestEventRestApi extends AbstractTestEventRestApi {
     List<EventResource> evs = (ArrayList<EventResource>)calR.getData();
     assertEquals(4, evs.size());
     Map<String,CalendarEvent> occMap = calendarService.getOccurrenceEvents(ev, from, to, timeZone);
-    assertEquals(occMap.values().size(), calR.getFullSize());
+    assertEquals(occMap.values().size(), calR.getSize());
     assertNotNull(response.getHttpHeaders().get(HEADER_LINK));
   }
 }
