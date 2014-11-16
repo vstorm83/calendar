@@ -22,6 +22,7 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.HEADER_LINK;
 
 import java.util.Collection;
 
+import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.EventCategory;
 import org.exoplatform.calendar.ws.bean.CalendarResource;
@@ -73,13 +74,14 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     assertNotNull(response.getHttpHeaders().get(HEADER_LINK));
     
     login("john");
-    //john can read event from private calendar
+    //john can't read event from private calendar
     response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
     assertEquals(0, evs.size());
     
+    //john is participant now
     CalendarEvent uEvt = createEvent(userCalendar);
     uEvt.setEventType(eventType);
     uEvt.addParticipant("john", "");
@@ -90,6 +92,20 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
     assertEquals(1, evs.size());
+    
+    //public calendar
+    Calendar pubCal = createPersonalCalendar("test", "root");
+    pubCal.setPublicUrl("test");
+    calendarService.saveUserCalendar("root", pubCal, false);
+    uEvt = createEvent(userCalendar);
+    uEvt.setEventType(eventType);
+    calendarService.saveUserEvent("root", pubCal.getId(), uEvt, true);
+    //john should be able to see event in public calendar
+    response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    assertEquals(HTTPStatus.OK, response.getStatus());
+    calR = (CollectionResource<?>)response.getEntity();
+    evs = calR.getData();
+    assertEquals(2, evs.size());    
     
     //jsonp
     response = service(HTTPMethods.GET, uri + "?jsonp=callback", baseURI, h, null, writer);

@@ -30,12 +30,7 @@ public class RestEventQuery extends EventQuery {
     // specific participant
     StringBuilder sql = new StringBuilder("SELECT * FROM ");
     sql.append(Utils.EXO_CALENDAR_EVENT);
-
     sql.append(" WHERE");
-    // find event from specific calendar
-    if (getCalendarPath() != null) {
-      sql.append(" jcr:path LIKE '%").append(getCalendarPath()).append("/%'");
-    }
 
     if (getCalendarId() != null || getParticipants() != null) {
       sql.append(" AND (");
@@ -48,8 +43,13 @@ public class RestEventQuery extends EventQuery {
       // participant
       if (getParticipants() != null) {
         for (String participant : getParticipants()) {
-          sql.append(" OR ")
-             .append(Utils.EXO_PARTICIPANT)
+          //workaround for case calendarRestApi.findEventsByCalendar
+          if (getCalendarPath() != null) {
+            sql.append(" AND ");
+          } else {
+            sql.append(" OR ");
+          }
+          sql.append(Utils.EXO_PARTICIPANT)
              .append(" = '")
              .append(participant)
              .append("'");

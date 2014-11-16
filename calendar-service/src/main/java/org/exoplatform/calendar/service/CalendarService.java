@@ -19,11 +19,13 @@ package org.exoplatform.calendar.service;
 import org.exoplatform.calendar.service.impl.CalendarEventListener;
 import org.exoplatform.calendar.service.impl.CsvImportExport;
 import org.exoplatform.calendar.service.impl.NewMembershipListener;
+import org.exoplatform.commons.utils.ListAccess;
 import org.exoplatform.services.scheduler.JobSchedulerService;
 import org.exoplatform.services.scheduler.impl.JobSchedulerServiceImpl;
 import org.quartz.JobDetail;
 
 import javax.jcr.Node;
+
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -1090,6 +1092,13 @@ public interface CalendarService {
   public void removeAttachmentById(String attId);
   
   public EventDAO getEventDAO();
+
+  /**
+   * Return calendars that have publicUrl enabled
+   * @return
+   * @throws Exception 
+   */
+  ListAccess<Calendar> getPublicCalendars() throws Exception;
 }
 
 

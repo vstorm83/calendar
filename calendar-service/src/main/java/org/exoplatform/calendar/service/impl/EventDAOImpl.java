@@ -17,23 +17,18 @@
 package org.exoplatform.calendar.service.impl;
 
 import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
-import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.fortuna.ical4j.model.DateTime;
 
@@ -75,44 +70,6 @@ public class EventDAOImpl implements EventDAO {
 
   @Override
   public ListAccess<CalendarEvent> findEventsByQuery(EventQuery eventQuery) throws CalendarException {
-    if (eventQuery.getCalendarPath() == null) {
-      //Remove this after we have CalendarDAO that support to find all public calendars
-      Set<String> calIds = new HashSet<String>();
-      if (eventQuery.getCalendarId() != null) {
-        calIds.addAll(Arrays.asList(eventQuery.getCalendarId()));
-      }
-      //find public calendars
-      try {
-        Query query = createJCRQuery(pubCalendarQuery, Query.SQL);
-        NodeIterator iter = query.execute().getNodes();
-        while (iter.hasNext()) {
-          calIds.add(iter.nextNode().getProperty(Utils.EXO_ID).getString());
-        }
-      } catch (RepositoryException e) {
-        log.error("error during query public calendar, exeption: {}", e.getMessage());
-        throw new CalendarException(null, e);
-      }
-      eventQuery.setCalendarId(calIds.toArray(new String[calIds.size()]));
-    } else {
-      //find calendar path
-      String calPath = null;
-
-      StringBuilder pathQuery = new StringBuilder("SELECT ").append(Utils.EXO_ID).append(" FROM ");
-      pathQuery.append(Utils.EXO_CALENDAR).append(" WHERE ");
-      pathQuery.append(Utils.EXO_ID).append("='").append(eventQuery.getCalendarPath()).append("'");
-      try {
-        Query query = createJCRQuery(pathQuery.toString(), Query.SQL);
-        NodeIterator iter = query.execute().getNodes();
-        while (iter.hasNext()) {
-          calPath = iter.nextNode().getPath();
-        }
-      } catch (RepositoryException e) {
-        log.error("error during query for calendar path, exeption: {}", e.getMessage());
-        throw new CalendarException(null, e);
-      }
-      eventQuery.setCalendarPath(calPath);
-    }
-
     return new EventList(new EventNodeListAccess(this, eventQuery));
   }
   

@@ -16,17 +16,13 @@
  **/
 package org.exoplatform.calendar.service.impl;
 
-import net.fortuna.ical4j.model.DateList;
-import net.fortuna.ical4j.model.DateTime;
-import net.fortuna.ical4j.model.Period;
-import net.fortuna.ical4j.model.Recur;
-
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
@@ -40,6 +36,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,6 +44,11 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import net.fortuna.ical4j.model.DateList;
+import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.Period;
+import net.fortuna.ical4j.model.Recur;
 
 import org.exoplatform.calendar.service.Attachment;
 import org.exoplatform.calendar.service.Calendar;
@@ -73,6 +75,7 @@ import org.exoplatform.calendar.service.ShareCalendarJob;
 import org.exoplatform.calendar.service.SynchronizeRemoteCalendarJob;
 import org.exoplatform.calendar.service.Utils;
 import org.exoplatform.commons.utils.ExoProperties;
+import org.exoplatform.commons.utils.ListAccess;
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.xml.InitParams;
@@ -80,6 +83,7 @@ import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.hierarchy.NodeHierarchyCreator;
 import org.exoplatform.services.jcr.impl.core.query.QueryImpl;
+import org.exoplatform.services.jcr.impl.core.query.lucene.QueryResultImpl;
 import org.exoplatform.services.jcr.util.IdGenerator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -1593,6 +1597,43 @@ public class CalendarServiceImpl implements CalendarService, Startable {
         LOG.debug("Exception when removing events",e);
       }
     }
+  }
+  
+  @Override
+  public ListAccess<Calendar> getPublicCalendars() throws Exception {
+    StringBuffer sql = new StringBuffer("SELECT * FROM ");
+    sql.append(Utils.EXO_CALENDAR).append(" WHERE ");
+    sql.append(Utils.EXO_PUBLIC_URL).append(" IS NOT NULL");
+       
+    QueryManager queryManager = storage_.getSystemSession().getWorkspace().getQueryManager();
+    final QueryImpl jcrQuery = (QueryImpl)queryManager.createQuery(sql.toString(), Query.SQL);    
+    
+    return new ListAccess<Calendar>() {
+      private int size = -1;
+      
+      @Override
+      public int getSize() throws Exception {
+        return size;
+      }
+
+      @Override
+      public Calendar[] load(int offset, int limit) throws Exception, IllegalArgumentException {
+        List<Calendar> cals = new LinkedList<Calendar>();
+        
+        if (limit > 0) {
+          jcrQuery.setOffset(offset);
+          jcrQuery.setLimit(limit);
+        }
+        
+        QueryResultImpl result = (QueryResultImpl)jcrQuery.execute();
+        NodeIterator iter = result.getNodes();
+        while (iter.hasNext()) {
+          cals.add(Utils.loadCalendar(iter.nextNode()));
+        }
+        this.size = result.getTotalSize();
+        return cals.toArray(new Calendar[cals.size()]);
+      }
+    };
   }
 
   @Override

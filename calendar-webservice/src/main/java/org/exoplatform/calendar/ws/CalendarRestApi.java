@@ -429,7 +429,7 @@ public class CalendarRestApi implements ResourceContainer {
     CalendarService service = calendarServiceInstance();
     EventDAO evtDAO = service.getEventDAO();
     
-    //find all viewable calendars of user: private, group, share calendars
+    //find all viewable calendars of user: public, user, group, shared calendars,
     String[] calIds = findViewableCalendars(username);
     EventQuery eventQuery = buildEventQuery(start, end, category, calIds, null, username, CalendarEvent.TYPE_EVENT, returnSize);
     ListAccess<CalendarEvent> events = evtDAO.findEventsByQuery(eventQuery);
@@ -772,7 +772,8 @@ public class CalendarRestApi implements ResourceContainer {
         participant = username;
       }
 
-      EventQuery eventQuery = buildEventQuery(start, end, category, null, calendar.getId(), participant, CalendarEvent.TYPE_EVENT, returnSize);
+      EventQuery eventQuery = buildEventQuery(start, end, category, new String[] {id}, 
+                                              id, participant, CalendarEvent.TYPE_EVENT, returnSize);
       ListAccess<CalendarEvent> events = evtDAO.findEventsByQuery(eventQuery);
 
       //
@@ -950,7 +951,7 @@ public class CalendarRestApi implements ResourceContainer {
     CalendarService service = calendarServiceInstance();
     EventDAO evtDAO = service.getEventDAO();
     
-    //find all viewable calendars of user: private, group, share calendars
+    //find all viewable calendars of user: public, user, group, shared calendars,
     String[] calIds = findViewableCalendars(username);
     EventQuery eventQuery = buildEventQuery(start, end, category, calIds, null, username, CalendarEvent.TYPE_TASK, returnSize);
     ListAccess<CalendarEvent> events = evtDAO.findEventsByQuery(eventQuery);
@@ -1856,14 +1857,19 @@ public class CalendarRestApi implements ResourceContainer {
     return false;
   }
   
-  private String[] findViewableCalendars(String username) {
-    CalendarCollection<Calendar> calendars = calendarServiceInstance().getAllCalendars(username, Calendar.TYPE_ALL, 0, -1);
-    String[] calIds = new String[calendars.size()];
-    int i = 0;
+  private String[] findViewableCalendars(String username) throws Exception {
+    CalendarService service = calendarServiceInstance();
+    CalendarCollection<Calendar> calendars = service.getAllCalendars(username, Calendar.TYPE_ALL, 0, -1);
+    List<String> calIds = new LinkedList<String>();
     for (Calendar cal : calendars) {
-      calIds[i++] = cal.getId();
+      calIds.add(cal.getId());
     }
-    return calIds;
+    
+    Calendar[] pubCals = service.getPublicCalendars().load(0, -1); 
+    for (Calendar cal : pubCals) {
+      calIds.add(cal.getId());
+    }
+    return calIds.toArray(new String[calIds.size()]);
   }
   
   private String[] findEditableCalendars(String username) {
