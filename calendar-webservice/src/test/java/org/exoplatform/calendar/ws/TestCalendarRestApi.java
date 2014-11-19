@@ -54,9 +54,9 @@ public class TestCalendarRestApi extends TestRestApi {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void testGetCalendars() throws Exception {
     login("john");
-    
+            
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    String queryParams ="?type=-1&offset=0&limit=20";
+    String queryParams ="?offset=0&limit=20";
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<CalendarResource> calR = (CollectionResource<CalendarResource>)response.getEntity();

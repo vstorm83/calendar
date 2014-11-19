@@ -28,6 +28,37 @@ import org.exoplatform.services.jcr.util.IdGenerator;
  */
 public class Calendar {
 
+  public enum Type {
+
+    PERSONAL(0),
+
+    SHARED(1),
+
+    GROUP(2),
+
+    UNDEFINED(-1);
+
+    private final int type;
+
+    Type(int type) {
+      this.type = type;
+    }
+
+    public int type() {
+      return type;
+    }
+
+    public Type getType(int type) {
+      for (Type t : Type.values()) {
+        if (t.type() == type) {
+          return t;
+        }
+      }
+
+      return UNDEFINED;
+    }
+  }
+
   public static final int      TYPE_PRIVATE  = 0;
 
   public static final int      TYPE_SHARED   = 1;

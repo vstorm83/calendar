@@ -57,6 +57,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang.StringUtils;
 import org.exoplatform.calendar.service.Attachment;
 import org.exoplatform.calendar.service.Calendar;
+import org.exoplatform.calendar.service.Calendar.Type;
 import org.exoplatform.calendar.service.CalendarCollection;
 import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.CalendarImportExport;
@@ -166,17 +167,31 @@ public class CalendarRestApi implements ResourceContainer {
   }
 
   /**
-   * Returns a calendar in the list when:
+   * Search for calendars which:
    * the authenticated user is the owner of the calendar
    * the authenticated user belongs to the group of the calendar
    * the calendar has been shared with the authenticated user or with a group of the authenticated user
+   * 
+   * @param type    The calendar type to search for. It can be one of <code>personal, group, shared</code>.
+   *                If this is omitted OR an unknown type is specified, it will search for <code>all</code> types.
+   *
+   * @param offset  The starting point when paging through a list of entities. Defaults to 0
+   * 
+   * @param limit   The maximum number of results when paging through a list of entities
+   * 
+   * @param fields  This is a list of comma-separated property's names
+   *                which will be returned in the response
+   * 
+   * @param jsonp   The name of a JavaScript function to be used as the JSONP callback
+   * 
+   * @return        List of calendars
    */
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @GET
   @RolesAllowed("users")
   @Path("/calendars/")
   @Produces({MediaType.APPLICATION_JSON})
-  public Response getCalendars(@QueryParam("type") int type,
+  public Response getCalendars(@QueryParam("type") String type,
                                                 @QueryParam("offset") int offset, 
                                                 @QueryParam("limit") int limit,
                                                 @QueryParam("fields") String fields,
@@ -184,7 +199,17 @@ public class CalendarRestApi implements ResourceContainer {
                                                 @Context UriInfo uri) {
     try {
       limit = parseLimit(limit);
-      CalendarCollection<Calendar> cals = calendarServiceInstance().getAllCalendars(currentUserId(), type, offset, limit);
+      Type calType = Calendar.Type.UNDEFINED;
+
+      if (type != null) {
+        try {
+          calType = Calendar.Type.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+          // Use default Type.UNDEFINED in any case of exception
+        }
+      }
+      
+      CalendarCollection<Calendar> cals = calendarServiceInstance().getAllCalendars(currentUserId(), calType.type(), offset, limit);
       if(cals == null || cals.isEmpty()) return Response.status(HTTPStatus.NOT_FOUND).cacheControl(cc).build();      
       
       String basePath = getBasePath(uri);
