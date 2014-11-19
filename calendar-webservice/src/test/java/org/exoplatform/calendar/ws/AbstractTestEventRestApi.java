@@ -57,7 +57,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("root");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource calR = (CollectionResource)response.getEntity();
     Collection evs = calR.getData();
@@ -66,7 +66,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     assertNull(response.getHttpHeaders().get(HEADER_LINK));
     
     String queryParams = "?returnSize=true";
-    response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + queryParams, baseURI, headers, null, writer);
     calR = (CollectionResource)response.getEntity();
     evs = calR.getData();
     assertEquals(10, evs.size());
@@ -75,7 +75,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     
     login("john");
     //john can't read event from private calendar
-    response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
@@ -87,7 +87,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     uEvt.addParticipant("john", "");
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
     //john can read event that he is participant
-    response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
@@ -101,14 +101,14 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     uEvt.setEventType(eventType);
     calendarService.saveUserEvent("root", pubCal.getId(), uEvt, true);
     //john should be able to see event in public calendar
-    response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
     assertEquals(2, evs.size());    
     
     //jsonp
-    response = service(HTTPMethods.GET, uri + "?jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + "?jsonp=callback", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     String data = (String) response.getEntity();
     StringBuilder sb = new StringBuilder("callback(").append(new JsonGeneratorImpl().createJsonObject(calR)).append(");");
@@ -123,7 +123,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
     Collection<?> evs = calR.getData();
@@ -132,7 +132,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     userCalendar.setPublicUrl("/test/url.ics");
     calendarService.saveUserCalendar("root", userCalendar, false);
     //john can read event from public calendar
-    response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
@@ -147,7 +147,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john");    
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
     Collection<?> evs = calR.getData();
@@ -162,7 +162,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> calR = (CollectionResource<?>)response.getEntity();
     Collection<?> evs = calR.getData();
@@ -171,7 +171,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("mary");
     //sharedCalendar is not shared to mary
     writer = new ByteArrayContainerResponseWriter();
-    response = service(HTTPMethods.GET, uri, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<?>)response.getEntity();
     evs = calR.getData();
@@ -181,14 +181,14 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
   public void runTestGetEventById(String uri, String eventType) throws Exception {
     login("root");
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri + "notExists", baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + "notExists", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
        
     CalendarEvent uEvt = createEvent(userCalendar);    
     uEvt.setEventType(eventType);    
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, true);
     //
-    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     Resource calR0 = (Resource)response.getEntity();
     assertNotNull(calR0);
@@ -196,17 +196,17 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     
     login("john");
     //
-    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     uEvt.addParticipant("john", "");
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, false);
     //john can read event in private calendar if he's participant
-    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     
     //jsonp
-    response = service(HTTPMethods.GET, uri + uEvt.getId() + "?fields=id&jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + uEvt.getId() + "?fields=id&jsonp=callback", baseURI, headers, null, writer);
     String data = (String) response.getEntity();
     StringBuilder sb = new StringBuilder("callback(").append("{\"id\":\"" + uEvt.getId() + "\"}").append(");");
     assertEquals(sb.toString(), data);
@@ -220,13 +220,13 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     userCalendar.setPublicUrl("test/url.ics");
     calendarService.saveUserCalendar("root", userCalendar, false);
     //
-    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     Resource calR0 = (Resource)response.getEntity();
     assertNotNull(calR0);
@@ -241,7 +241,7 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john", "/platform/administrators:member");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri + gEvt.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + gEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
   }
   
@@ -253,12 +253,12 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, uri + sEvt.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + sEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
 
     login("mary");
     //
-    response = service(HTTPMethods.GET, uri + sEvt.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + sEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
   
@@ -277,19 +277,19 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     JsonValue json = generatorImpl.createJsonObject(resource);
 
     byte[] data = json.toString().getBytes("UTF-8");
-    h = new MultivaluedMapImpl();
-    h.putSingle("content-type", "application/json");
-    h.putSingle("content-length", "" + data.length);
+
+    headers.putSingle("content-type", "application/json");
+    headers.putSingle("content-length", "" + data.length);
 
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.PUT, uri + uEvt.getId(), baseURI, h, data, writer);
+    ContainerResponse response = service(HTTPMethods.PUT, uri + uEvt.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
     
     login("root");
     //
-    response = service(HTTPMethods.PUT, uri + uEvt.getId(), baseURI, h, data, writer);
+    response = service(HTTPMethods.PUT, uri + uEvt.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
   }
   
@@ -301,12 +301,12 @@ public abstract class AbstractTestEventRestApi extends TestRestApi {
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.DELETE, uri + uEvt.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.DELETE, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
     
     login("root");
     //
-    response = service(HTTPMethods.DELETE, uri + uEvt.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.DELETE, uri + uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertNull(calendarService.getEventById(uEvt.getId()));
   }  

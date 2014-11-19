@@ -89,17 +89,17 @@ public class TestAttachmentAndCategories extends TestRestApi {
     atId = URLEncoder.encode(atId.toString(), "ISO-8859-1");
     
     login("root", "/platform/administrators:member");
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     calendarService.savePublicEvent(groupCalendar.getId(), ev, true);
     atId = calendarService.getEventById(ev.getId()).getAttachment().get(0).getId();
     atId = URLEncoder.encode(atId.toString(), "ISO-8859-1");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
 
     login("john", "/platform/users:member");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
   }
 
@@ -122,7 +122,7 @@ public class TestAttachmentAndCategories extends TestRestApi {
     String atId = calendarService.getEventById(ev.getId()).getAttachment().get(0).getId();
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     atId = URLEncoder.encode(atId.toString(), "ISO-8859-1");
-    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + ATTACHMENT_URI + atId, baseURI, headers, null, writer);
     assertNotNull(response);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(1, calendarService.getEventById(ev.getId()).getAttachment().size());
@@ -134,7 +134,7 @@ public class TestAttachmentAndCategories extends TestRestApi {
     EventCategory category = this.createEventCategory("root", "event-category");
 
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI, baseURI, headers, null, writer);
     
     CollectionResource resource = (CollectionResource)response.getEntity();
     assertNotNull(response);
@@ -143,7 +143,7 @@ public class TestAttachmentAndCategories extends TestRestApi {
     assertNotNull(response.getHttpHeaders().get(HEADER_LINK));
 
     //jsonp
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI +"?jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI +"?jsonp=callback", baseURI, headers, null, writer);
     String data = (String) response.getEntity();
     StringBuilder sb = new StringBuilder("callback(");
     sb.append(new JsonGeneratorImpl().createJsonObject(resource)).append(");");
@@ -155,11 +155,11 @@ public class TestAttachmentAndCategories extends TestRestApi {
     this.createEventCategory("root", "event-category");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI + "notfound", baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI + "notfound", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     EventCategory category = createEventCategory("root", "myCategory");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI + category.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CATEGORY_URI + category.getId(), baseURI, headers, null, writer);
     CategoryResource resource = (CategoryResource)response.getEntity();
 
     assertNotNull(response);

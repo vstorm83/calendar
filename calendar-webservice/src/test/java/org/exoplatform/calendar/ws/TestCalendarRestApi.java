@@ -32,7 +32,6 @@ import org.exoplatform.calendar.ws.bean.CollectionResource;
 import org.exoplatform.common.http.HTTPMethods;
 import org.exoplatform.common.http.HTTPStatus;
 import org.exoplatform.services.rest.impl.ContainerResponse;
-import org.exoplatform.services.rest.impl.MultivaluedMapImpl;
 import org.exoplatform.services.rest.tools.ByteArrayContainerResponseWriter;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
@@ -44,11 +43,12 @@ public class TestCalendarRestApi extends TestRestApi {
     login("root");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());    
     Map<String, String[]> subResources = (Map<String, String[]>)response.getEntity();
     String[] resources = subResources.get("subResourcesHref");
     assertEquals(33, resources.length);
+    System.out.println(resources[0]);
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -57,7 +57,7 @@ public class TestCalendarRestApi extends TestRestApi {
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     String queryParams ="?type=-1&offset=0&limit=20";
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<CalendarResource> calR = (CollectionResource<CalendarResource>)response.getEntity();
     assertEquals(2, calR.getData().size());
@@ -72,7 +72,7 @@ public class TestCalendarRestApi extends TestRestApi {
     
     login("root");
     //
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CollectionResource<CalendarResource>)response.getEntity();
     assertEquals(3, calR.getData().size());
@@ -82,7 +82,7 @@ public class TestCalendarRestApi extends TestRestApi {
       createPersonalCalendar("root" + " myCalendar2" + i, "root");
     }
 
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + queryParams, baseURI, headers, null, writer);
     calR = (CollectionResource)response.getEntity();
     assertEquals(10, calR.getData().size());
     assertEquals(13, calR.getSize());
@@ -102,18 +102,18 @@ public class TestCalendarRestApi extends TestRestApi {
     JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     byte[] data = json.toString().getBytes("UTF-8");
     
-    h.putSingle("content-type", "application/json");
-    h.putSingle("content-length", "" + data.length);
+    headers.putSingle("content-type", "application/json");
+    headers.putSingle("content-length", "" + data.length);
 
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
+    ContainerResponse response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, headers, data, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
     String location = "[/v1/calendar/calendars/" + cal.getId() + "]";
     assertEquals(location, response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION).toString());
 
     //demo is not owner of root calendar    
     login("demo");
-    response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
+    response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, headers, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
     
     //demo can create group calendar
@@ -124,14 +124,14 @@ public class TestCalendarRestApi extends TestRestApi {
     data = json.toString().getBytes("UTF-8");
     //
     login("demo", "/platform/users:member");
-    response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
+    response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, headers, data, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
     
     //demo can't create cal for group that he's not in
     cal.setGroups(new String[] {"/platform/admin"});
     json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     data = json.toString().getBytes("UTF-8");
-    response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, h, data, writer);
+    response = service(HTTPMethods.POST, CAL_BASE_URI + CALENDAR_URI, baseURI, headers, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
   }
   
@@ -139,36 +139,36 @@ public class TestCalendarRestApi extends TestRestApi {
     login("mary");
     //mary can't read root calendar
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     login("root");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, h, null, writer);    
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, headers, null, writer);    
     assertEquals(HTTPStatus.OK, response.getStatus());
     CalendarResource calR = (CalendarResource)response.getEntity();
     assertEquals(userCalendar.getId(), calR.getId());
     
     login("mary", "/platform/users:member");
     //mary can read group calendar
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, h, null, writer);    
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, headers, null, writer);    
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CalendarResource)response.getEntity();
     assertEquals(groupCalendar.getId(), calR.getId());
     
     //mary can't read group calendar that she not belongs to
     Calendar adminCal = createGroupCalendar("newGroups", "/platform/administrators");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + adminCal.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + adminCal.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     login("john");
     //john can read shared calendar
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId(), baseURI, h, null, writer);    
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId(), baseURI, headers, null, writer);    
     assertEquals(HTTPStatus.OK, response.getStatus());
     calR = (CalendarResource)response.getEntity();
     assertEquals(sharedCalendar.getId(), calR.getId());
     
     //not found
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + "notExists", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + "notExists", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
 
@@ -180,30 +180,29 @@ public class TestCalendarRestApi extends TestRestApi {
     JsonValue json = generatorImpl.createJsonObject(new CalendarResource(cal, CAL_BASE_URI + "/"));
     byte[] data = json.toString().getBytes("UTF-8");
 
-    h = new MultivaluedMapImpl();
-    h.putSingle("content-type", "application/json");
-    h.putSingle("content-length", "" + data.length);
+    headers.putSingle("content-type", "application/json");
+    headers.putSingle("content-length", "" + data.length);
     
     login("john");
     //john can't update root calendar
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, h, data, writer);
+    ContainerResponse response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
     //john can't update shared calendar
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId(), baseURI, h, data, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
     
     login("root");
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, h, data, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     
     //john doesn't has edit permission
     login("john");
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, h, data, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
     
     login("root");
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, h, data, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, headers, data, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
   }
 
@@ -211,18 +210,18 @@ public class TestCalendarRestApi extends TestRestApi {
     login("john");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
 
-    response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
 
     login("root");
-    response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + userCalendar.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertNull(calendarService.getCalendarById(userCalendar.getId()));
 
-    response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, h, null, writer);
+    response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertNull(calendarService.getCalendarById(groupCalendar.getId()));
   }
@@ -232,7 +231,7 @@ public class TestCalendarRestApi extends TestRestApi {
 
     login("john");
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId(), baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     //calendar is not shared to john anymore, but it's not deleted
     assertNull(calendarService.getSharedCalendars("john", true));
@@ -245,26 +244,26 @@ public class TestCalendarRestApi extends TestRestApi {
 
     login("john");
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, headers, null, writer);
     //john can read shared calendar ics 
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(CalendarRestApi.TEXT_ICS_TYPE, response.getContentType());
     
     login("root");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(CalendarRestApi.TEXT_ICS_TYPE, response.getContentType());
     
     //sharedCalendar is not shared to mary
     login("mary");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     sharedCalendar.setPublicUrl("/test/url.ics");
     calendarService.saveUserCalendar("root", sharedCalendar, false);
     //may can read public calendar ics
     login("mary");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + sharedCalendar.getId() + ICS_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(CalendarRestApi.TEXT_ICS_TYPE, response.getContentType());
     
@@ -272,12 +271,12 @@ public class TestCalendarRestApi extends TestRestApi {
     calendarService.savePublicEvent(groupCalendar.getId(), gEvt, true);
     //
     login("john", "/platform/administrators:member");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId() + ICS_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId() + ICS_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(CalendarRestApi.TEXT_ICS_TYPE, response.getContentType());
     
     login("test");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId() + ICS_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + groupCalendar.getId() + ICS_URI, baseURI, headers, null, writer);
     //test is not in group of groupCalendar
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }

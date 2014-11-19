@@ -85,7 +85,7 @@ public class TestTaskRestApi extends AbstractTestEventRestApi {
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + 
-                                         uEvt.getId(), baseURI, h, null, writer);
+                                         uEvt.getId(), baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());    
     TaskResource calR0 = (TaskResource)response.getEntity();
     assertNotNull(calR0);
@@ -95,14 +95,14 @@ public class TestTaskRestApi extends AbstractTestEventRestApi {
     
     //expand=calendar
     response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + 
-                                         uEvt.getId() + "?expand=calendar", baseURI, h, null, writer);
+                                         uEvt.getId() + "?expand=calendar", baseURI, headers, null, writer);
     calR0 = (TaskResource)response.getEntity();
     assertTrue(calR0.getCalendar() instanceof CalendarResource);
     assertEquals(uEvt.getCalendarId(), ((CalendarResource)calR0.getCalendar()).getId());
     
     //expand=categories
     response = service(HTTPMethods.GET, CAL_BASE_URI + TASK_URI + 
-                                         uEvt.getId() + "?expand=categories", baseURI, h, null, writer);
+                                         uEvt.getId() + "?expand=categories", baseURI, headers, null, writer);
     calR0 = (TaskResource)response.getEntity();
     assertTrue(calR0.getCategories() instanceof CategoryResource[]);
     assertEquals(1, calR0.getCategories().length);

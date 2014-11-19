@@ -29,13 +29,13 @@ public abstract class TestRestApi extends AbstractResourceTest {
   
   protected Calendar sharedCalendar;
   
-	protected CalendarWebservice calendarWebservice;
+  protected CalendarWebservice calendarWebservice;
 
-	protected CalendarService calendarService;
+  protected CalendarService calendarService;
 
-  protected static final String             baseURI = "";
+  protected static final String baseURI = "";
   
-  protected MultivaluedMap<String, String> h = new MultivaluedMapImpl();
+  protected MultivaluedMap<String, String> headers;
 
   public void setUp() throws Exception {
     RuntimeDelegate.setInstance(new RuntimeDelegateImpl());
@@ -53,6 +53,8 @@ public abstract class TestRestApi extends AbstractResourceTest {
     groupCalendar = this.createGroupCalendarWithEditPermission("group-calendar", Arrays.asList("/platform/administrators", "/platform/users"), "/platform/administrators/:*.manager");
     
     sharedCalendar = this.createSharedCalendarWithEditable("shared-calendar", "root", "john");
+
+    headers = new MultivaluedMapImpl();
   }
 
   public void tearDown() throws Exception {

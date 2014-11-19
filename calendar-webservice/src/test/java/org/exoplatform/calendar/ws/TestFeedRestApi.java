@@ -111,7 +111,7 @@ public class TestFeedRestApi extends TestRestApi {
     this.login("root");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, headers, null, writer);
     assertNotNull(response);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(1, calendarService.getFeeds("root").size());
@@ -122,20 +122,20 @@ public class TestFeedRestApi extends TestRestApi {
     assertTrue(calR.getCalendars().iterator().next() instanceof String);
     
     //get fields "name", "calendars"
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?fields=name,calendars", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?fields=name,calendars", baseURI, headers, null, writer);
     assertTrue(response.getEntity() instanceof HashMap);
     
     //expand "calendars"
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars", baseURI, headers, null, writer);
     calR = (FeedResource)response.getEntity();
     assertTrue(calR.getCalendars().iterator().next() instanceof CalendarResource);
     
     //jsonp
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?fields=name&jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?fields=name&jsonp=callback", baseURI, headers, null, writer);
     String data = (String) response.getEntity();
     assertEquals("callback({\"name\":\"Calendar_Feed\"});", data);
     
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?jsonp=callback", baseURI, headers, null, writer);
     data = (String) response.getEntity();
     StringBuilder sb = new StringBuilder("{\"name\":\"Calendar_Feed\"");
     sb.append(",\"calendars\":[\"/calendar/calendars/").append(userCalendar.getId()).append("\",\"/calendar/calendars/").append(groupCalendar.getId()).append("\"]");
@@ -144,7 +144,7 @@ public class TestFeedRestApi extends TestRestApi {
     sb.append("}");
     assertJSONP(sb.toString(), data);
 
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars(offset:0,limit:1)&jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + "?expand=calendars(offset:0,limit:1)&jsonp=callback", baseURI, headers, null, writer);
     data = (String) response.getEntity();
     JsonGeneratorImpl generator = new JsonGeneratorImpl();
     JsonValue value = generator.createJsonObject(new CalendarResource(userCalendar, ""));
@@ -157,7 +157,7 @@ public class TestFeedRestApi extends TestRestApi {
     
     //
     this.login("john");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
 
@@ -187,22 +187,22 @@ public class TestFeedRestApi extends TestRestApi {
     JsonValue json = generatorImpl.createJsonObject(rs);
 
     byte[] data = json.toString().getBytes("UTF-8");
-    h = new MultivaluedMapImpl();
-    h.putSingle("content-type", "application/json");
-    h.putSingle("content-length", "" + data.length);
-    h.putSingle("username", "root");
+
+    headers.putSingle("content-type", "application/json");
+    headers.putSingle("content-length", "" + data.length);
+    headers.putSingle("username", "root");
     //
     this.login("root");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.PUT, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, h, data, writer);
+    ContainerResponse response = service(HTTPMethods.PUT, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, headers, data, writer);
     assertNotNull(response);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(1, calendarService.getFeeds("root").size());
     
     //
     this.login("john");
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, h, data, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, headers, data, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
 
@@ -211,7 +211,7 @@ public class TestFeedRestApi extends TestRestApi {
     this.login("root");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.DELETE, CAL_BASE_URI + FEED_URI + calendarFeedNane, baseURI, headers, null, writer);
     assertNotNull(response);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(0, calendarService.getFeeds("root").size());
@@ -222,13 +222,13 @@ public class TestFeedRestApi extends TestRestApi {
     this.login("root");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + RSS_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + RSS_URI, baseURI, headers, null, writer);
     assertNotNull(response);
     assertEquals(HTTPStatus.OK, response.getStatus());
     assertEquals(MediaType.APPLICATION_XML_TYPE, response.getContentType());
     
     this.login("john");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + RSS_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + FEED_URI + calendarFeedNane + RSS_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
 }

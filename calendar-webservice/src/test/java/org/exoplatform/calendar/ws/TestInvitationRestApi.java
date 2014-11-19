@@ -67,7 +67,7 @@ public class TestInvitationRestApi extends TestRestApi {
     login("john");
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     assertEquals(0, invitation.getData().size());
@@ -78,7 +78,7 @@ public class TestInvitationRestApi extends TestRestApi {
     uEvt.addParticipant("root", "");
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, false);
     //
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     assertEquals(1, invitation.getData().size());
@@ -88,7 +88,7 @@ public class TestInvitationRestApi extends TestRestApi {
     
     login("root");  
     //root has edit permission
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + "?returnSize=true", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + "?returnSize=true", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     assertEquals(2, invitation.getData().size());
@@ -96,7 +96,7 @@ public class TestInvitationRestApi extends TestRestApi {
     assertNotNull(response.getHttpHeaders().get(CalendarRestApi.HEADER_LINK));            
     
     //jsonp
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + "?returnSize=true&jsonp=callback", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + "?returnSize=true&jsonp=callback", baseURI, headers, null, writer);
     String data = (String) response.getEntity();
     StringBuilder sb = new StringBuilder("callback(").append(new JsonGeneratorImpl().createJsonObject(invitation)).append(");");
     assertEquals(sb.toString(), data);
@@ -110,14 +110,14 @@ public class TestInvitationRestApi extends TestRestApi {
     calendarService.saveUserEvent("root", sharedCalendar.getId(), sEvt, false);
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     //john has edit permission on shared calendar
     assertEquals(1, invitation.getData().size());
     
     login("root");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     //root has edit permission on sEvt
@@ -133,14 +133,14 @@ public class TestInvitationRestApi extends TestRestApi {
     calendarService.savePublicEvent(groupCalendar.getId(), gEvt, false);
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();    
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     //john can view groupCalendar but doen't has edit permission
     assertEquals(0, invitation.getData().size());
 
     login("root");
-    response= service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, h, null, writer);
+    response= service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     //root has edit permission on gEvt
@@ -174,7 +174,7 @@ public class TestInvitationRestApi extends TestRestApi {
     login("root");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary", baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary", baseURI, headers, null, writer);
     //no invitation in database
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
 
@@ -182,12 +182,12 @@ public class TestInvitationRestApi extends TestRestApi {
     calendarService.savePublicEvent(groupCalendar.getId(), gEvt, false);
     
     login("john");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary", baseURI, headers, null, writer);
     //john is not participant and not has edit permission
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
     
     login("root");
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary", baseURI, headers, null, writer);
     //root is not paritipant but has edit permission
     assertEquals(HTTPStatus.OK, response.getStatus());
     InvitationResource invitation = (InvitationResource)response.getEntity();
@@ -197,7 +197,7 @@ public class TestInvitationRestApi extends TestRestApi {
     
     //expand=event
     response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + gEvt.getId() + ":mary" + "?expand=event"
-                       , baseURI, h, null, writer);
+                       , baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (InvitationResource)response.getEntity();
     assertTrue(invitation.getEvent() instanceof EventResource);
@@ -208,7 +208,7 @@ public class TestInvitationRestApi extends TestRestApi {
     
     login("john");
     response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + 
-                       uEvt.getId() + ":john" + "?fields=participant,abcd", baseURI, h, null, writer);
+                       uEvt.getId() + ":john" + "?fields=participant,abcd", baseURI, headers, null, writer);
     //john is paritipant and doesn't has edit permission
     assertEquals(HTTPStatus.OK, response.getStatus());
     Map<String, Object> ivtMap = (Map<String, Object>)response.getEntity();
@@ -224,25 +224,25 @@ public class TestInvitationRestApi extends TestRestApi {
     login("root");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, headers, null, writer);
     InvitationResource invite = (InvitationResource)response.getEntity();
     assertEquals("no", invite.getStatus());
 
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john?status=pending", baseURI, h, null, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john?status=pending", baseURI, headers, null, writer);
     //root has edit permission, but he's not the participant
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
 
     login("john");
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john?status=pending", baseURI, h, null, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john?status=pending", baseURI, headers, null, writer);
     //john doesn't has edit permission, but he's participant
     assertEquals(HTTPStatus.OK, response.getStatus());
     
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, headers, null, writer);
     invite = (InvitationResource)response.getEntity();
     assertEquals("pending", invite.getStatus());
     
     //try to update non-exists invitation
-    response = service(HTTPMethods.PUT, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":root?status=pending", baseURI, h, null, writer);
+    response = service(HTTPMethods.PUT, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":root?status=pending", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
 
@@ -253,20 +253,20 @@ public class TestInvitationRestApi extends TestRestApi {
     login("john");
     //
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, headers, null, writer);
     InvitationResource invite = (InvitationResource)response.getEntity();
     assertEquals("no", invite.getStatus());
     
-    response = service(HTTPMethods.DELETE, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, h, null, writer);    
+    response = service(HTTPMethods.DELETE, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, headers, null, writer);    
     //john can get, update, but can't delete invitation because he doesn't 
     //has edit permission
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
 
     login("root");
-    response = service(HTTPMethods.DELETE, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, h, null, writer);
+    response = service(HTTPMethods.DELETE, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     
-    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + INVITATION_URI + uEvt.getId() + ":john", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
   }
   
@@ -274,7 +274,7 @@ public class TestInvitationRestApi extends TestRestApi {
   public void testGetInvitationsFromEvent() throws Exception {        
     login("john");
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();    
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + "notExistsEvent"+ INVITATION_URI, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + "notExistsEvent"+ INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     assertEquals(0, invitation.getSize());
@@ -285,7 +285,7 @@ public class TestInvitationRestApi extends TestRestApi {
     uEvt.addParticipant("root", "");
     calendarService.saveUserEvent("root", userCalendar.getId(), uEvt, false);
     //
-    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     assertEquals(1, invitation.getData().size());
@@ -295,7 +295,7 @@ public class TestInvitationRestApi extends TestRestApi {
 
     login("root");  
     //root has edit permission
-    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     assertEquals(2, invitation.getData().size());
@@ -313,7 +313,7 @@ public class TestInvitationRestApi extends TestRestApi {
     //root has edit permission
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI
-                                         + "?status=yes", baseURI, h, null, writer);
+                                         + "?status=yes", baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     assertEquals(1, invitation.getData().size());
@@ -349,26 +349,26 @@ public class TestInvitationRestApi extends TestRestApi {
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     ContainerResponse response = service(HTTPMethods.POST, CAL_BASE_URI + EVENT_URI + "notExistsEvent" + 
-                                         INVITATION_URI + queryParams, baseURI, h, null, writer);
+                                         INVITATION_URI + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
 
     response = service(HTTPMethods.POST, CAL_BASE_URI + EVENT_URI + uEvt.getId() +
-                       INVITATION_URI, baseURI, h, null, writer);
+                       INVITATION_URI, baseURI, headers, null, writer);
     //no query params
     assertEquals(HTTPStatus.BAD_REQUEST, response.getStatus());
     
     response = service(HTTPMethods.POST, CAL_BASE_URI + EVENT_URI + uEvt.getId() +
-                       INVITATION_URI + queryParams, baseURI, h, null, writer);
+                       INVITATION_URI + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.UNAUTHORIZED, response.getStatus());
 
     login("root");
     response = service(HTTPMethods.POST, CAL_BASE_URI + EVENT_URI + uEvt.getId() +
-                                         INVITATION_URI + queryParams, baseURI, h, null, writer);
+                                         INVITATION_URI + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.CREATED, response.getStatus());
     String location = "[/v1/calendar/invitations/" + uEvt.getId() + ":john]";
     assertEquals(location, response.getHttpHeaders().get(CalendarRestApi.HEADER_LOCATION).toString());
 
-    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, CAL_BASE_URI + EVENT_URI + uEvt.getId() + INVITATION_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource<?> invitation = (CollectionResource<?>)response.getEntity();
     assertEquals(1, invitation.getSize());
@@ -383,7 +383,7 @@ public class TestInvitationRestApi extends TestRestApi {
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();    
     String queryParams = "?fields=participant,status";
-    ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     assertEquals(1, invitation.getData().size());
@@ -405,7 +405,7 @@ public class TestInvitationRestApi extends TestRestApi {
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();    
     String queryParams = "?jsonp=callback";
-    ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     String invitation = (String)response.getEntity();
     assertTrue(invitation.matches("callback\\(\\{.+\\}\\);"));
@@ -417,7 +417,7 @@ public class TestInvitationRestApi extends TestRestApi {
 
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
     String queryParams = "?offset=0&limit=1";
-    ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, uri + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     CollectionResource invitation = (CollectionResource)response.getEntity();
     assertEquals(1, invitation.getData().size());
@@ -426,7 +426,7 @@ public class TestInvitationRestApi extends TestRestApi {
     }
     
     queryParams = "?offset=10&limit=11&returnSize=true";
-    response = service(HTTPMethods.GET, uri + queryParams, baseURI, h, null, writer);
+    response = service(HTTPMethods.GET, uri + queryParams, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());
     invitation = (CollectionResource)response.getEntity();
     InvitationResource ivt = (InvitationResource)invitation.getData().iterator().next();
