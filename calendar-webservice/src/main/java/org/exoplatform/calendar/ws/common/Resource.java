@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.exoplatform.calendar.ws.bean;
+package org.exoplatform.calendar.ws.common;
 
 import java.io.Serializable;
 
@@ -26,11 +26,9 @@ public abstract class Resource implements Serializable {
   private static final long serialVersionUID = 3422763517401399776L;
   private String id;
   private String href;
-	protected String basePath;
   
-  public Resource(String id, String basePath) {
+  public Resource(String id) {
     this.id = id;
-    this.basePath = basePath;
   }
 
   public String getId(){

@@ -77,8 +77,9 @@ import org.exoplatform.calendar.ws.bean.EventResource;
 import org.exoplatform.calendar.ws.bean.FeedResource;
 import org.exoplatform.calendar.ws.bean.InvitationResource;
 import org.exoplatform.calendar.ws.bean.RepeatResource;
-import org.exoplatform.calendar.ws.bean.Resource;
 import org.exoplatform.calendar.ws.bean.TaskResource;
+import org.exoplatform.calendar.ws.common.Resource;
+import org.exoplatform.calendar.ws.common.RestAPIConstants;
 import org.exoplatform.common.http.HTTPStatus;
 import org.exoplatform.commons.utils.ISO8601;
 import org.exoplatform.commons.utils.ListAccess;
@@ -107,16 +108,18 @@ import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.SyndFeedOutput;
 import com.sun.syndication.io.XmlReader;
 
-@Path("/v1/calendar")
+@Path(CalendarRestApi.CAL_BASE_URI)
 public class CalendarRestApi implements ResourceContainer {
-  private Log log = ExoLogger.getExoLogger(CalendarRestApi.class);
-  public static String VERSION_LASTEST = "/v1";
+
+  public final static String CAL_BASE_URI = RestAPIConstants.BASE_VERSION_URI + "/calendar";
+
   public static final String TEXT_ICS = "text/calendar";
   public static final MediaType TEXT_ICS_TYPE = new MediaType("text","calendar");
+  
+  // TODO: Why /cs/calendar is still being used here ?
   public final static String BASE_URL = "/cs/calendar";
   public final static String BASE_EVENT_URL = BASE_URL + "/event";
 
-  public final static String CAL_BASE_URI = VERSION_LASTEST + "/calendar";
 
   public final static String CALENDAR_URI = "/calendars/";
   public final static String EVENT_URI = "/events/";
@@ -141,6 +144,8 @@ public class CalendarRestApi implements ResourceContainer {
     cc.setNoCache(true);
     cc.setNoStore(true);
   }
+
+  private Log log = ExoLogger.getExoLogger(CalendarRestApi.class);
   
   public CalendarRestApi(OrganizationService orgService, InitParams params) {
     this.orgService = orgService;

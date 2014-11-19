@@ -20,17 +20,18 @@ package org.exoplatform.calendar.ws.bean;
 import static org.exoplatform.calendar.ws.CalendarRestApi.CATEGORY_URI;
 
 import org.exoplatform.calendar.service.EventCategory;
+import org.exoplatform.calendar.ws.common.Resource;
 
 public class CategoryResource extends Resource {
   private static final long serialVersionUID = 6940106249883390857L;
   private String name;
   
   public CategoryResource() {
-    super(null, null);
+    super(null);
   }
   
 	public CategoryResource(EventCategory data, String basePath) {
-	  super(data.getId(), basePath);
+	  super(data.getId());
 	  StringBuilder path = new StringBuilder(basePath);
 	  path.append(CATEGORY_URI).append(getId());
 	  setHref(path.toString());

@@ -33,6 +33,7 @@ import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.Reminder;
 import org.exoplatform.calendar.service.Utils;
 import org.exoplatform.calendar.ws.CalendarRestApi;
+import org.exoplatform.calendar.ws.common.Resource;
 import org.exoplatform.commons.utils.ISO8601;
 import org.exoplatform.webservice.cs.bean.End;
 
@@ -57,11 +58,11 @@ public class EventResource extends Resource {
   private String                    availability;  
   
   public EventResource() {
-    super(null, null);
+    super(null);
   }
 
   public EventResource(CalendarEvent data, String basePath) throws Exception {
-    super(data.getId(), basePath);
+    super(data.getId());
 
     StringBuilder href = new StringBuilder(basePath).append(EVENT_URI).append(data.getId()); 
     setHref(href.toString());

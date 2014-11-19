@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import org.exoplatform.calendar.service.FeedData;
+import org.exoplatform.calendar.ws.common.Resource;
 
 public class FeedResource extends Resource {
   private static final long serialVersionUID = 7911451293360539750L;
@@ -45,11 +46,11 @@ public class FeedResource extends Resource {
   private String[] calendarIds = null;
 
   public FeedResource() {
-    super(null, null);
+    super(null);
   }
   
   public FeedResource(FeedData data, String[] calendarids, String basePath) {
-    super(data.getFeed(), basePath);
+    super(data.getFeed());
 
     setHref(new StringBuilder(basePath).append(FEED_URI).append(data.getTitle()).toString());
     name = data.getTitle();

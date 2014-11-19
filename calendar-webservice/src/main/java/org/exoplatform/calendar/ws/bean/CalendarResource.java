@@ -20,6 +20,7 @@ package org.exoplatform.calendar.ws.bean;
 import org.exoplatform.calendar.service.Calendar;
 import org.exoplatform.calendar.service.Utils;
 import org.exoplatform.calendar.ws.CalendarRestApi;
+import org.exoplatform.calendar.ws.common.Resource;
 
 public class CalendarResource extends Resource {
 
@@ -39,11 +40,11 @@ public class CalendarResource extends Resource {
   private String icsURL; 
   
   public CalendarResource() {
-    super(null, null);
+    super(null);
   }
 
   public CalendarResource(Calendar data, String basePath) {
-    super(data.getId(), basePath);
+    super(data.getId());
     
     StringBuilder calUri = new StringBuilder(basePath);
     calUri.append(CalendarRestApi.CALENDAR_URI).append(getId());    

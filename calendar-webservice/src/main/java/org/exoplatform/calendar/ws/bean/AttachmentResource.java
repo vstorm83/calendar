@@ -22,6 +22,7 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.ATTACHMENT_URI;
 import java.net.URLEncoder;
 
 import org.exoplatform.calendar.service.Attachment;
+import org.exoplatform.calendar.ws.common.Resource;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
@@ -35,11 +36,11 @@ public class AttachmentResource extends Resource {
   private long weight;
   
   public AttachmentResource() {
-    super(null, null);
+    super(null);
   } 
 
   public AttachmentResource(Attachment data, String basePath) {
-    super(data.getDataPath(), basePath);
+    super(data.getDataPath());
     
     StringBuilder path = new StringBuilder(basePath);
     path.append(ATTACHMENT_URI);

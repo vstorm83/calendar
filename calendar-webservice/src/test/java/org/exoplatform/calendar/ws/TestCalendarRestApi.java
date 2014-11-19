@@ -43,7 +43,7 @@ public class TestCalendarRestApi extends TestRestApi {
     login("root");
     
     ByteArrayContainerResponseWriter writer = new ByteArrayContainerResponseWriter();
-    ContainerResponse response = service(HTTPMethods.GET, CAL_BASE_URI, baseURI, headers, null, writer);
+    ContainerResponse response = service(HTTPMethods.GET, "http://localhost:3333" + CAL_BASE_URI, baseURI, headers, null, writer);
     assertEquals(HTTPStatus.OK, response.getStatus());    
     Map<String, String[]> subResources = (Map<String, String[]>)response.getEntity();
     String[] resources = subResources.get("subResourcesHref");

@@ -23,6 +23,7 @@ import static org.exoplatform.calendar.ws.CalendarRestApi.INVITATION_URI;
 import java.io.Serializable;
 
 import org.exoplatform.calendar.service.Invitation;
+import org.exoplatform.calendar.ws.common.Resource;
 
 public class InvitationResource extends Resource {
   private static final long serialVersionUID = -5546515171185717545L;
@@ -34,11 +35,11 @@ public class InvitationResource extends Resource {
   private String            status;
 
   public InvitationResource() {
-    super(null, null);
+    super(null);
   }
   
   public InvitationResource(Invitation data, String basePath) {
-    super(data.getId(), basePath);
+    super(data.getId());
     setHref(new StringBuffer(basePath).append(INVITATION_URI).append(data.getId()).toString());
     event = new StringBuffer(basePath).append(EVENT_URI).append(data.getEventId()).toString();
     this.participant = data.getParticipant();

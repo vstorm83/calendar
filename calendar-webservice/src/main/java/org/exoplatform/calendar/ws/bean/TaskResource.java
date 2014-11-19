@@ -32,6 +32,7 @@ import org.exoplatform.calendar.service.CalendarEvent;
 import org.exoplatform.calendar.service.Reminder;
 import org.exoplatform.calendar.service.Utils;
 import org.exoplatform.calendar.ws.CalendarRestApi;
+import org.exoplatform.calendar.ws.common.Resource;
 import org.exoplatform.commons.utils.ISO8601;
 
 public class TaskResource extends Resource {
@@ -50,11 +51,11 @@ public class TaskResource extends Resource {
   private String status;  
 
   public TaskResource() {
-    super(null, null);
+    super(null);
   }
   
   public TaskResource(CalendarEvent data, String basePath) throws Exception {
-   super(data.getId(), basePath);
+   super(data.getId());
    setHref(new StringBuilder(basePath).append(TASK_URI).append(data.getId()).toString());
    name = data.getSummary();
    note = data.getDescription();
