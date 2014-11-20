@@ -68,7 +68,23 @@
       </init-params>
     </component-plugin>
   </external-component-plugins>
-  
+
+  <!-- 
+  <external-component-plugins>
+      <target-component>org.exoplatform.calendar.ws.common.RestSecurityService</target-component>     
+      <component-plugin>
+         <name>add.config.permission</name>
+         <set-method>addPermission</set-method>
+         <type>org.exoplatform.calendar.ws.common.RestSecurityServiceImpl$PermissionPlugin</type>
+         <init-params>
+            <properties-param>
+            	<name>permissions</name>
+            	<property name="/v1/calendar" value="*:/platform/administrator"/>
+        		</properties-param>
+         </init-params>
+      </component-plugin>
+  </external-component-plugins>
+  -->
   <external-component-plugins>
       <target-component>org.exoplatform.services.rest.impl.RequestHandlerImpl</target-component>     
       <component-plugin>

@@ -17,9 +17,6 @@
   
 package org.exoplatform.calendar.ws.common;
 
-import java.util.Map;
-import java.util.Set;
-
 public interface RestSecurityService {
 
   public static final String NOBODY = "Nobody";
@@ -29,30 +26,9 @@ public interface RestSecurityService {
    * OR user has permission configured with that uri <br/>
    * For example: if no permission is configured, any user can access any rest resource <br/>
    * But if the rest uri: /rest/calendar is configured with *:/platform/admins --> only admin group can access that resource <br/>
-   * If the request uri match more than one configured uri pattern, the first one has higher priority <br/>
+   * The permissions are inherited, if there are config:  /rest --> *:/admin, and /rest/calendar --> *:/users. So an user must
+   * have admin permission to access to /rest/calendar
    * Super user has permission to access all resources. No matter how permission is configured
    */ 
   public boolean hasPermission(String requestPath);
-
-  /**
-   * Map a path regex pattern to a permission <br/>
-   * This method keep order of added regex. First configured regex has higher priority <br/>
-   * @param permissions contains multiple permission separated by comma. For example: 
-   * manager:/platform/users,*:/platform/administrators  
-   */
-  public void addPermission(String pathPattern, String permissions);
-  
-  public void removePermission(String pathPattern);
-  
-  public Map<String, Set<String>> getPermissions();
-  
-  /**
-   * Remove all restricted rule, allow all users access all resources
-   */
-  public void allowAll();
-  
-  /**
-   * Deny all users (except supper user) access any resources
-   */
-  public void denyAll();
 }

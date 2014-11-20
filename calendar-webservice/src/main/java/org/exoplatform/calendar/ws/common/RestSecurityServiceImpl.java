@@ -18,37 +18,23 @@
 package org.exoplatform.calendar.ws.common;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.PropertiesParam;
 import org.exoplatform.container.xml.Property;
-import org.exoplatform.management.annotations.Impact;
-import org.exoplatform.management.annotations.ImpactType;
-import org.exoplatform.management.annotations.Managed;
-import org.exoplatform.management.annotations.ManagedDescription;
-import org.exoplatform.management.annotations.ManagedName;
-import org.exoplatform.management.jmx.annotations.NameTemplate;
-import org.exoplatform.management.rest.annotations.RESTEndpoint;
 import org.exoplatform.portal.config.UserACL;
-import org.infinispan.util.concurrent.ConcurrentHashSet;
 
-@Managed
-@ManagedDescription("Rest Security Service")
-@NameTemplate({@org.exoplatform.management.jmx.annotations.Property(key = "service", value = "security"), 
-  @org.exoplatform.management.jmx.annotations.Property(key = "type", value = "rest") })
-@RESTEndpoint(path = "restSecurityService")
 public class RestSecurityServiceImpl implements RestSecurityService {
 
-  private Map<String, Set<String>> permissions = new LinkedHashMap<String, Set<String>>();
-
-  private Map<String, Pattern> patterns = new LinkedHashMap<String, Pattern>();
+  private PermissionConfig config = new PermissionConfig();
 
   private UserACL userACL;
 
@@ -58,110 +44,110 @@ public class RestSecurityServiceImpl implements RestSecurityService {
     this.userACL = userACL;
   }
 
-  @Managed
-  @ManagedDescription("Check for permission")
-  public boolean hasPermission(@ManagedDescription("rest path") @ManagedName("requestPath")  String requestPath) {    
-    if (requestPath != null) {
-      //Nomalize the request path
-      requestPath = requestPath.trim();
-      if (requestPath.length() > 1 && requestPath.charAt(requestPath.length() - 1) == '/') {
-        requestPath = requestPath.substring(0, requestPath.length() - 1);
-      }
-      
-      for (Entry<String, Pattern> entry : patterns.entrySet()) {
-        if (entry.getValue().matcher(requestPath).matches()) {
-          for (String permission : permissions.get(entry.getKey())) {
-            //Remove nobody permission checking after upgrading to gatein 3.7.x
-            permission = NOBODY.equalsIgnoreCase(permission) ? null : permission;
-            
-            if (userACL.hasPermission(permission)) {
-              return true;
-            }
-          }
-          
-          //Request matched but user don't have permission
+  public boolean hasPermission(String requestPath) {
+    if (requestPath != null) {      
+      for (String permission : config.getPermission(requestPath)) {
+        //Remove nobody permission checking after upgrading to gatein 3.7.x
+        permission = NOBODY.equalsIgnoreCase(permission) ? null : permission;
+        
+        if (!userACL.hasPermission(permission)) {
           return false;
         }
       }
     }
 
-    //No permission configured for that request path
+    //
     return true;
   }
 
-  public void addPermission(PermissionConfig config) {
+  public void addPermission(PermissionPlugin config) {
     Map<String, String> perConfig = config.getConfig();
-    for (String path : perConfig.keySet()) {      
-      addPermission(path, perConfig.get(path));
+    for (Entry<String, String> c : perConfig.entrySet()) {      
+      addPermission(c.getKey(), c.getValue());
     }
   }
   
-  @Managed
-  @ManagedDescription("Add permission")
-  @Impact(ImpactType.WRITE)
-  public void addPermission(@ManagedDescription("rest path") @ManagedName("pathRegex") String pathRegex, 
-                            @ManagedDescription("permission") @ManagedName("permission") String permission) {
-    pathRegex = pathRegex.trim();
-    Set<String> lst = permissions.get(pathRegex);
-    if (lst == null) {
-      synchronized (permissions) {
-        if (lst == null) {
-          lst = new ConcurrentHashSet<String>();
-          permissions.put(pathRegex, lst);
-          patterns.put(pathRegex, Pattern.compile(pathRegex));
+  public void addPermission(String path, String permission) {
+    synchronized (config) {
+      config.addConfig(path, permission);      
+    }
+  }
+  
+  public static class PermissionConfig {
+    private Map<String, PermissionConfig> childs = new HashMap<String, PermissionConfig>();
+    private String permission;
+    
+    public Set<String> getPermission(String path) {
+      List<String> fragments = getFragments(path);
+      
+      Set<String> result = new HashSet<String>();
+      if (this.permission != null) {
+        result.add(this.permission);        
+      }
+
+      PermissionConfig current = this;
+      for (String fragment : fragments) {
+        current = current.childs.get(fragment);        
+        if (current != null) {
+          if (current.permission != null) {
+            result.add(current.permission);            
+          }
+        } else {
+          break;
         }
       }
+      return result;
     }
-
-    for (String str : permission.split(",")) {
-      lst.add(str.trim());
+    
+    public void addConfig(String path, String permission) {
+      List<String> fragments = getFragments(path);
+      PermissionConfig current = this;
+      
+      for (String fragment : fragments) {        
+        PermissionConfig child = current.childs.get(fragment);
+        if (child != null) {
+          current  = child; 
+        } else {
+          child = new PermissionConfig();
+          current.childs.put(fragment, child);
+          current = child;
+        }
+      }
+      current.permission = permission;      
     }
-  }
-  
-  @Managed
-  @ManagedDescription("Remove permission")
-  @Impact(ImpactType.WRITE)
-  public void removePermission(@ManagedDescription("rest path") @ManagedName("pathRegex") String pathRegex) {
-    permissions.remove(pathRegex);
-    patterns.remove(pathRegex);
-  }
-  
-  @Managed
-  @ManagedDescription("Get Permissions")
-  public Map<String, Set<String>> getPermissions() {
-    return permissions;
-  }
-  
-  @Managed
-  @ManagedDescription("Allow all")
-  @Impact(ImpactType.WRITE)
-  public void allowAll() {
-    permissions.clear();
-    patterns.clear();
-  }
-  
-  @Managed
-  @ManagedDescription("Deny all")
-  @Impact(ImpactType.WRITE)
-  public void denyAll() {
-    permissions.clear();
-    patterns.clear();
-    //Should use userACL.NOBODY constant of gatein 3.7.x
-    addPermission(".*", NOBODY);
+    
+    private List<String> getFragments(String path) {
+      List<String> fragments = new LinkedList<String>();
+      
+      if (path != null) {
+        String[] tmp = path.split("/");
+        for (String s : tmp) {
+          s = s.trim();
+          if (!s.isEmpty()) {
+            fragments.add(s);
+          }
+        }        
+      }
+      return fragments;      
+    }
   }
 
-  public static class PermissionConfig extends BaseComponentPlugin {
+  /**
+   * The permission follow pattern: membershipType:groupId. For example: *:/platform/administrators <br/>  
+   */
+  public static class PermissionPlugin extends BaseComponentPlugin {
     private Map<String, String> config = new HashMap<String, String>();
     
-    public PermissionConfig(InitParams params) {
+    public PermissionPlugin(InitParams params) {
       if (params != null) {
+        @SuppressWarnings("unchecked")
         Iterator<PropertiesParam> iter = params.getPropertiesParamIterator();
         while (iter.hasNext()) {
           PropertiesParam param = iter.next();
           Iterator<Property> props = param.getPropertyIterator();
           while (props.hasNext()) {
             Property permission = props.next();
-            config.put(permission.getName(), permission.getValue());
+            config.put(permission.getName().trim(), permission.getValue().trim());
           }
         }
       }
