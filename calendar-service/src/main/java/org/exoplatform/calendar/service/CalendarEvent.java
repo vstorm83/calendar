@@ -20,6 +20,7 @@ import org.exoplatform.services.jcr.util.IdGenerator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -36,7 +37,7 @@ import java.util.Set;
  *          hung.nguyen@exoplatform.com
  * Jul 11, 2007  
  */
-public class CalendarEvent {
+public class CalendarEvent extends AbstractBean {
   final public static String   TYPE_EVENT      = "Event".intern();
 
   final public static String   TYPE_TASK       = "Task".intern();
@@ -111,8 +112,6 @@ public class CalendarEvent {
 
   final public static String[] REPEATTYPES     = { RP_NOREPEAT, RP_DAILY, RP_WEEKLY, RP_MONTHLY, RP_YEARLY };
 
-  private String               id;
-
   private String               summary;
 
   private String               location;
@@ -140,8 +139,6 @@ public class CalendarEvent {
   private String               message;
 
   private String[]             participantStatus;
-
-  private Date                 lastUpdatedTime;
 
   // properties for exo:repeatCalendarEvent mixin type
   private String               recurrenceId;
@@ -212,12 +209,12 @@ public class CalendarEvent {
 
   private String activityId ;
   public CalendarEvent() {
-    id = "Event" + IdGenerator.generate();
+    setId("Event" + IdGenerator.generate());
   }
 
   // copy constructor
   public CalendarEvent(CalendarEvent event) {
-    this.id = event.id;
+    setId(event.getId());
     this.summary = event.summary;
     this.description = event.description;
     this.fromDateTime = event.fromDateTime;
@@ -243,14 +240,6 @@ public class CalendarEvent {
     this.setRepeatInterval(event.getRepeatInterval());
     this.setRepeatByDay(event.getRepeatByDay());
     this.setRepeatByMonthDay(event.getRepeatByMonthDay());
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
   }
 
   public String getSummary() {
@@ -448,12 +437,29 @@ public class CalendarEvent {
       this.message = new String();
   }
 
+  /**
+   * use getLastModified instead
+   */
+  @Deprecated
   public Date getLastUpdatedTime() {
-    return lastUpdatedTime;
+    Date date = null;
+    if (getLastModified() != null) {
+      date = getLastModified().getTime();
+    }
+    return date;
   }
 
+  /**
+   * use setLastModified instead
+   */
+  @Deprecated
   public void setLastUpdatedTime(Date lastUpdatedTime) {
-    this.lastUpdatedTime = lastUpdatedTime;
+    Calendar cal = null;
+    if (lastUpdatedTime != null) {
+      cal = Utils.getInstanceTempCalendar();
+      cal.setTime(lastUpdatedTime);      
+    }
+    setLastModified(cal);
   }
 
   /**

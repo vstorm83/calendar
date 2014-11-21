@@ -1287,7 +1287,7 @@ public class Utils {
     .append(Utils.EXO_TIMEZONE).append('|').append(Utils.EXO_SHARED_COLOR).append('|')
     .append(Utils.EXO_CALENDAR_COLOR).append('|').append(Utils.EXO_CALENDAR_OWNER).append('|')
     .append(Utils.EXO_PUBLIC_URL).append('|').append(Utils.EXO_PRIVATE_URL).append('|').append(Utils.EXO_GROUPS)
-    .append('|').append(Utils.EXO_VIEW_PERMISSIONS).append('|').append(Utils.EXO_EDIT_PERMISSIONS);
+    .append('|').append(Utils.EXO_VIEW_PERMISSIONS).append('|').append(Utils.EXO_EDIT_PERMISSIONS).append("|").append(Utils.EXO_DATE_MODIFIED);
     PropertyIterator it = calNode.getProperties(namePattern.toString());
     List<String> groups = null;
     String[] viewPermission = null, editPermission = null;
@@ -1314,6 +1314,8 @@ public class Utils {
         calendar.setPublicUrl(p.getString());
       } else if (name.equals(Utils.EXO_PRIVATE_URL)) {
         calendar.setPrivateUrl(p.getString());
+      } else if (name.equals(Utils.EXO_DATE_MODIFIED)) {
+        calendar.setLastModified(p.getDate());
       } else if (name.equals(Utils.EXO_GROUPS)) {
         Value[] values = p.getValues();
         groups = new ArrayList<String>();

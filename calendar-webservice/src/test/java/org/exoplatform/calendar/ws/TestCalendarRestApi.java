@@ -167,9 +167,12 @@ public class TestCalendarRestApi extends TestRestApi {
     calR = (CalendarResource)response.getEntity();
     assertEquals(sharedCalendar.getId(), calR.getId());
     
+    //cache control
+    System.out.println(response.getHttpHeaders().get("cache-control"));
+    
     //not found
     response = service(HTTPMethods.GET, CAL_BASE_URI + CALENDAR_URI + "notExists", baseURI, headers, null, writer);
-    assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());
+    assertEquals(HTTPStatus.NOT_FOUND, response.getStatus());   
   }
 
   public void testUpdateCalendarById() throws Exception {

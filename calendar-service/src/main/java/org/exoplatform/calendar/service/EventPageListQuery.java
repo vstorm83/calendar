@@ -156,7 +156,7 @@ public class EventPageListQuery extends JCRPageList {
       } else if (name.equals(Utils.EXO_MESSAGE)) {
         event.setMessage(p.getString());
       } else if (name.equals(Utils.EXO_DATE_MODIFIED)) {
-        event.setLastUpdatedTime(p.getDate().getTime());
+        event.setLastModified(p.getDate());
       } else if (name.equals(Utils.EXO_INVITATION)) {
         Value[] values = p.getValues();
         if (values.length == 1) {
