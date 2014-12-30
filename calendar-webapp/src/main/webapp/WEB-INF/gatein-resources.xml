@@ -159,11 +159,7 @@
     <name>Reminder</name>
     <script>
       <path>/javascript/eXo/calendar/Reminder.js</path>
-    </script>
-    <depends>
-      <module>commons-cometd</module>
-      <as>cometd</as>
-    </depends>
+    </script>    
     <depends>
       <module>jquery</module>
       <as>gj</as>
@@ -171,6 +167,9 @@
     <depends>
       <module>csResources</module>
       <as>cs</as>
+    </depends>
+    <depends>
+      <module>jquery_cometd</module>
     </depends>
   </module>
   <module>

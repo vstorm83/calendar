@@ -1,27 +1,34 @@
-(function(cs, gj, cometd){
+(function(cs, gj){
 	function Reminder() {} ;
 
 	_module = {};
 	eXo.calendar = {};
 
 	Reminder.prototype.init = function(eXoUser, eXoToken, cometdContextName){
-		if(!eXo.cs.CSCometd) eXo.cs.CSCometd = cometd;
-		eXo.cs.CSCometd.exoId = eXoUser;
-		eXo.cs.CSCometd.exoToken = eXoToken;
-		if(cometdContextName)
-			eXo.cs.CSCometd.url = '/' + cometdContextName + '/cometd';
-		eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/messages', function(eventObj) {		
-			eXo.calendar.Reminder.alarm(eventObj) ;
+		if(!eXo.cs.CSCometd) eXo.cs.CSCometd = gj.cometd;
+		var eXoProps = {'exoId': eXoUser, 'exoToken': eXoToken};
+		
+		var loc = window.location;
+		eXo.cs.CSCometd.configure({
+		    url: loc.protocol + '//' + loc.hostname + (loc.port ? ':' + loc.port : '')  + '/' + cometdContextName + '/cometd'
 		});
-		eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/notifyShareCalendar',
-				function(eventObj) {
-			eXo.calendar.Reminder.notifyShareCalendar(eventObj);
-		});
-		eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/notifyImportCalendar', function(eventObj){
-			eXo.calendar.Reminder.notifyImportCalendar(eventObj);
-		});
-		if (!eXo.cs.CSCometd.isConnected()) {
-			eXo.cs.CSCometd.init();
+		if (gj.cometd.isDisconnected()) {
+			eXo.cs.CSCometd.handshake(eXoProps, function(reply) {
+				if (reply.successful) {
+					eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/messages', null, function(eventObj) {		
+						eXo.calendar.Reminder.alarm(eventObj) ;
+					}, eXoProps);
+					
+					eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/notifyShareCalendar',
+							function(eventObj) {
+						eXo.calendar.Reminder.notifyShareCalendar(eventObj);
+					}, eXoProps);
+					
+					eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/notifyImportCalendar', function(eventObj){
+						eXo.calendar.Reminder.notifyImportCalendar(eventObj);
+					}, eXoProps);					
+				}
+			});
 		}
 	} ;
 
@@ -125,4 +132,4 @@
 
 	_module.Reminder = eXo.calendar.Reminder;
 	return _module;
-})(cs, gj,cometd);
+})(cs, gj);
