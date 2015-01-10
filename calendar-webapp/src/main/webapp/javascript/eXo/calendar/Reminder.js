@@ -1,42 +1,33 @@
-(function(cs, gj){
+(function(cs, gj, cCometD){
 	function Reminder() {} ;
 
 	_module = {};
 	eXo.calendar = {};
 
 	Reminder.prototype.init = function(eXoUser, eXoToken, cometdContextName){
-		if(!eXo.cs.CSCometd) eXo.cs.CSCometd = gj.cometd;
-		var eXoProps = {'exoId': eXoUser, 'exoToken': eXoToken};
+		if(!eXo.cs.CSCometd) eXo.cs.CSCometd = cCometD;
 		
 		var loc = window.location;
 		eXo.cs.CSCometd.configure({
-		    url: loc.protocol + '//' + loc.hostname + (loc.port ? ':' + loc.port : '')  + '/' + cometdContextName + '/cometd'
+		    url: loc.protocol + '//' + loc.hostname + (loc.port ? ':' + loc.port : '')  + '/' + cometdContextName + '/cometd',
+		    'exoId': eXoUser, 'exoToken': eXoToken
 		});
-		var reminder = this;
-		if (gj.cometd.isDisconnected()) {
-			eXo.cs.CSCometd.handshake(eXoProps, function(reply) {
-				if (reply.successful) {
-					reminder.initCometd(eXoProps);
-				}
-			});
-		} else {
-			reminder.initCometd(eXoProps);
-		}
+		this.initCometd();
 	} ;
 
-	Reminder.prototype.initCometd = function(eXoProps) {
+	Reminder.prototype.initCometd = function() {
 		eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/messages', null, function(eventObj) {		
 			eXo.calendar.Reminder.alarm(eventObj) ;
-		}, eXoProps);
+		});
 		
 		eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/notifyShareCalendar',
 				function(eventObj) {
 			eXo.calendar.Reminder.notifyShareCalendar(eventObj);
-		}, eXoProps);
+		});
 		
 		eXo.cs.CSCometd.subscribe('/eXo/Application/Calendar/notifyImportCalendar', function(eventObj){
 			eXo.calendar.Reminder.notifyImportCalendar(eventObj);
-		}, eXoProps);
+		});
 	}
 
 	Reminder.prototype.notifyImportCalendar = function(eventObj) {
@@ -126,4 +117,4 @@
 
 	_module.Reminder = eXo.calendar.Reminder;
 	return _module;
-})(cs, gj);
+})(cs, gj, cCometD);

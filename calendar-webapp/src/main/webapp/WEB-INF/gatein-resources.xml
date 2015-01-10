@@ -169,7 +169,7 @@
       <as>cs</as>
     </depends>
     <depends>
-      <module>jquery_cometd</module>
+      <module>commons-cometd3</module>
     </depends>
   </module>
   <module>
