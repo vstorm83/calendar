@@ -16,6 +16,27 @@
  **/
 package org.exoplatform.calendar.service;
 
+import javax.jcr.Node;
+import javax.jcr.Session;
+import javax.portlet.PortletConfig;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.TimeZone;
+
 import net.fortuna.ical4j.model.ComponentList;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.NumberList;
@@ -38,6 +59,7 @@ import net.fortuna.ical4j.model.property.TzId;
 import net.fortuna.ical4j.model.property.TzName;
 import net.fortuna.ical4j.model.property.TzOffsetFrom;
 import net.fortuna.ical4j.model.property.TzOffsetTo;
+
 import org.exoplatform.calendar.service.impl.NewUserListener;
 import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
@@ -54,25 +76,12 @@ import org.exoplatform.services.organization.Group;
 import org.exoplatform.services.organization.Membership;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
+import org.exoplatform.services.resources.PortletConfigRegistry;
+import org.exoplatform.services.resources.ResourceBundleService;
+import org.exoplatform.ws.frameworks.cometd.LocalizableMessage;
+import org.exoplatform.ws.frameworks.cometd.LocalizableMessage.ResourceBundleResolver;
 import org.quartz.JobExecutionContext;
 import org.quartz.impl.JobDetailImpl;
-
-import javax.jcr.Node;
-import javax.jcr.Session;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
 
 /**
  * Created by The eXo Platform SARL
@@ -374,6 +383,19 @@ public class Utils {
   public static final String DESCENDING                 = "descending";
 
   public static final String SPACE                      = " ";
+  
+  public static final ResourceBundleResolver BUNDLE_RESOLVER = new ResourceBundleResolver() {
+    @Override
+    public ResourceBundle resolve(Locale locale) {
+      ExoContainer container = ExoContainerContext.getCurrentContainer();
+      PortletConfigRegistry configReg = (PortletConfigRegistry)container.getComponentInstanceOfType(PortletConfigRegistry.class);
+      PortletConfig config = configReg.getPortletConfig("CalendarPortlet");
+      if (config != null) {
+        return config.getResourceBundle(locale);
+      }
+      return null;
+    }
+  };
 
   public static final String RESOURCEBUNDLE_NAME        = "locale.portlet.calendar.CalendarPortlet";
 
@@ -421,13 +443,13 @@ public class Utils {
   
   public static final String REMOVED_USERS = "removedUsers";
   
-  public static final String START_SHARE = "startShare";
+  public static final String START_SHARE = "UICalendarPortlet.label.start-sharing";
   
-  public static final String FINISH_SHARE = "finishShare";
+  public static final String FINISH_SHARE = "UICalendarPortlet.label.finish-sharing";
   
-  public static final String START_UN_SHARE = "startUnShare";
+  public static final String START_UN_SHARE = "UICalendarPortlet.label.start-unsharing";
   
-  public static final String FINISH_UN_SHARE = "finishUnShare";
+  public static final String FINISH_UN_SHARE = "UICalendarPortlet.label.finish-unsharing";
   
   public static final String ERROR_SHARE = "errorShare";
   
@@ -636,7 +658,7 @@ public class Utils {
     SessionProviderService sessionProviderService = (SessionProviderService) ExoContainerContext.getCurrentContainer().getComponentInstanceOfType(SessionProviderService.class);
     return sessionProviderService.getSystemSessionProvider(null);
   }
-  
+
   /**
    * build message about job sharing calendar for groups
    * @param type The type can be: share,un-share,finishShare,finishUnShare
@@ -644,9 +666,10 @@ public class Utils {
    * @param groups Groups that are shared/un-shared
    * @return String in form [type, calendarName, group1, group2,..]
    */
-  public static String buildMessageToSend(String type, String calendarName, List<String> groups, OrganizationService oService) throws Exception {
+  public static LocalizableMessage buildMessageToSend(String type, String calendarName, 
+                                                      List<String> groups, OrganizationService oService) throws Exception {
     StringBuilder sb = new StringBuilder("");
-    sb.append(type);
+    sb.append(LocalizableMessage.PREFIX + type + LocalizableMessage.SUFFIX);
     sb.append(",");
     sb.append(calendarName);
     Iterator<String> it = groups.iterator();
@@ -656,9 +679,11 @@ public class Utils {
       Group group = oService.getGroupHandler().findGroupById(groupId);
       sb.append(group.getGroupName());
     }
-    return sb.toString();
+
+    LocalizableMessage msg = new LocalizableMessage(sb.toString(), BUNDLE_RESOLVER);
+    return msg;
   }
-  
+
   public static Calendar getBeginDay(Calendar cal) {
     Calendar newCal = (Calendar) cal.clone();
 

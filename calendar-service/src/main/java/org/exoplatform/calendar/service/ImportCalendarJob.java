@@ -24,6 +24,7 @@ import org.exoplatform.container.PortalContainer;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.ws.frameworks.cometd.ContinuationService;
+import org.exoplatform.ws.frameworks.cometd.LocalizableMessage;
 import org.quartz.InterruptableJob;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
@@ -56,8 +57,8 @@ public class ImportCalendarJob implements Job, InterruptableJob {
   public static final String USER_NAME = "username";
   public static final String IMPORT_CALENDAR_CHANNEL = "/eXo/Application/Calendar/notifyImportCalendar";
   // Constants for continuation service
-  public static final String START_MESSAGE_KEY = "startImport:%s";
-  public static final String FINISH_MESSAGE_KEY = "finishImport:%s";
+  public static final String START_MESSAGE_KEY = LocalizableMessage.PREFIX + "UICalendarPortlet.label.start-importing" + LocalizableMessage.SUFFIX + ":%s";
+  public static final String FINISH_MESSAGE_KEY =  LocalizableMessage.PREFIX + "UICalendarPortlet.label.finish-importing" + LocalizableMessage.SUFFIX + ":%s:finishImport";
   public static final String ERROR_MESSAGE_KEY = "errorImport:%s";
   private static Log log = ExoLogger.getLogger(ImportCalendarJob.class);
   
@@ -82,8 +83,9 @@ public class ImportCalendarJob implements Job, InterruptableJob {
     String type = jobDataMap.getString(IMPORT_OR_SUBSCRIBE);
     String username = jobDataMap.getString(USER_NAME);
     String calendarName = jobDataMap.getString(CALENDAR_NAME);
-
-    continuation.sendMessage(username, IMPORT_CALENDAR_CHANNEL, String.format(START_MESSAGE_KEY, calendarName));
+    
+    LocalizableMessage startImportMsg = new LocalizableMessage(String.format(START_MESSAGE_KEY, calendarName), Utils.BUNDLE_RESOLVER);
+    continuation.sendMessage(username, IMPORT_CALENDAR_CHANNEL, startImportMsg);
     
     try {
       if(IMPORT_UPLOADED_FILE.equals(type)) {
@@ -102,7 +104,8 @@ public class ImportCalendarJob implements Job, InterruptableJob {
         calendarService.importRemoteCalendar(remoteCalendar);
       }
       
-      continuation.sendMessage(username, IMPORT_CALENDAR_CHANNEL, String.format(FINISH_MESSAGE_KEY, calendarName));
+      LocalizableMessage finishImportMsg = new LocalizableMessage(String.format(FINISH_MESSAGE_KEY, calendarName), Utils.BUNDLE_RESOLVER);
+      continuation.sendMessage(username, IMPORT_CALENDAR_CHANNEL, finishImportMsg);
       log.info("finished importing icalendar");
     } catch (Exception e) {
       continuation.sendMessage(username, IMPORT_CALENDAR_CHANNEL, String.format(ERROR_MESSAGE_KEY, calendarName));

@@ -16,19 +16,28 @@
  **/
 package org.exoplatform.calendar.service;
 
+import javax.portlet.PortletConfig;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.component.ComponentRequestLifecycle;
+import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
+import org.exoplatform.services.resources.PortletConfigRegistry;
+import org.exoplatform.services.resources.ResourceBundleService;
 import org.exoplatform.ws.frameworks.cometd.ContinuationService;
+import org.exoplatform.ws.frameworks.cometd.LocalizableMessage;
+import org.exoplatform.ws.frameworks.cometd.LocalizableMessage.ResourceBundleResolver;
 import org.quartz.InterruptableJob;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
@@ -48,7 +57,6 @@ public class ShareCalendarJob implements Job, InterruptableJob {
   private static Log         log                  = ExoLogger.getLogger(ShareCalendarJob.class);
 
   public ShareCalendarJob() throws Exception {
-
   }
 
   public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -68,14 +76,14 @@ public class ShareCalendarJob implements Job, InterruptableJob {
       String calendarId = jobDataMap.getString(Utils.CALENDAR_ID);
       List<String> sharedGroups = (List<String>) jobDataMap.get(Utils.SHARED_GROUPS);
 
-      CalendarService calendarService = (CalendarService) PortalContainer.getInstance().getComponentInstance(CalendarService.class) ;
+      PortalContainer container = PortalContainer.getInstance();
+      CalendarService calendarService = (CalendarService) container.getComponentInstance(CalendarService.class) ;
       
       Calendar cal = calendarService.getUserCalendar(user, calendarId);
-      
+
       String calendarName = cal.getName();
-      
-      String startMessage = Utils.buildMessageToSend(Utils.START_SHARE, calendarName, sharedGroups, oService);
-      String stopMessage = Utils.buildMessageToSend(Utils.FINISH_SHARE, calendarName, sharedGroups, oService);
+      LocalizableMessage startMessage = Utils.buildMessageToSend(Utils.START_SHARE, calendarName, sharedGroups, oService);
+      LocalizableMessage stopMessage = Utils.buildMessageToSend(Utils.FINISH_SHARE, calendarName, sharedGroups, oService);
       
       ContinuationService continuation = (ContinuationService) PortalContainer.getInstance()
           .getComponentInstanceOfType(ContinuationService.class);

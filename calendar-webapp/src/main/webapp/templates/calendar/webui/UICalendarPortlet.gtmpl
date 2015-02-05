@@ -55,10 +55,6 @@
       <div class="clearfix">
         <div class="notificationBox"></div>
       </div>
-      <div class="resourceBundle" style="display:none;">
-          <div class="startImport"><%=_ctx.appRes("UICalendarPortlet.label.start-importing")%></div>
-          <div class="finishImport"><%=_ctx.appRes("UICalendarPortlet.label.finish-importing")%></div>
-        </div>    
     </div>
     
     <div id="shareCalendarNotification" class="alert uiNotification uiCalNotification" style="display:none;">
@@ -69,12 +65,6 @@
         </div>
       </div>
       <div class="notificationBox"></div>
-      <div class="resourceBundle" style="display:none;">
-        <div class="startShare"><%=_ctx.appRes("UICalendarPortlet.label.start-sharing")%></div>
-        <div class="finishShare"><%=_ctx.appRes("UICalendarPortlet.label.finish-sharing")%></div>
-        <div class="startUnShare"><%=_ctx.appRes("UICalendarPortlet.label.start-unsharing")%></div>
-        <div class="finishUnShare"><%=_ctx.appRes("UICalendarPortlet.label.finish-unsharing")%></div>
-      </div>
     </div>   
 
     <div id="editCalendarNotification" class="alert uiNotification uiCalNotification" style="display:none; width:200px;">

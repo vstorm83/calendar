@@ -10,7 +10,7 @@
 		var loc = window.location;
 		eXo.cs.CSCometd.configure({
 		    url: loc.protocol + '//' + loc.hostname + (loc.port ? ':' + loc.port : '')  + '/' + cometdContextName + '/cometd',
-		    'exoId': eXoUser, 'exoToken': eXoToken
+		    'exoId': eXoUser, 'exoToken': eXoToken, 'ext' : {'exo.context': {'locale': gj('html').attr('lang')}}
 		});
 		this.initCometd();
 	} ;
@@ -33,27 +33,29 @@
 	Reminder.prototype.notifyImportCalendar = function(eventObj) {
 		var data = eventObj.data;
 		var infos = data.split(':');
-		var type =infos[0];
+		var msg =infos[0];
 		var calendarName = infos[1];
+		var type = null;
+		if (infos.length == 3) {
+		  type = infos[2];
+		}
 
 		var popup = gj('#importCalendarNotification');
-		var label = popup.find('.resourceBundle ').find('.' + type).text();;
-		label = label.replace("{0}","<strong>" + calendarName + "</strong>");
-		popup.find('.notificationBox').html(label);
+		msg = msg.replace("{0}","<strong>" + calendarName + "</strong>");
+		popup.find('.notificationBox').html(msg);
 		popup.css('display','block');
 		setTimeout(function(){popup.css('display','none')},5000);
-		if(type == "finishImport") {
+		if(type && type == "finishImport") {
 			window.location.reload();
 		}
 	};
-
 
     //@since CS-5722 popup notification for calendar sharing and unsharing job 
 	Reminder.prototype.notifyShareCalendar = function(eventObj){
 		var data = eventObj.data;
 		var popup = gj('#shareCalendarNotification');
 		var params = data.split(',');
-		var type = params[0]; // startShare || startUnShare || finishShare || finishUnShare
+		var label = params[0]; // startShare || startUnShare || finishShare || finishUnShare
 		var calendarName = params[1];
 		var groups = "";
 		//get string for shared groups
@@ -61,7 +63,7 @@
 			if(i == params.length - 1) groups += params[i];
 			else groups += params[i] + ',';
 		}
-		var label = popup.find('.resourceBundle').find('.' + type).text();
+
 		label = label.replace("{0}","<strong>" + calendarName + "</strong>");
 		label += "<br/>" + groups;
 		popup.find('.notificationBox').html(label);

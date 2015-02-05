@@ -29,6 +29,7 @@ import org.exoplatform.services.organization.Group;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
 import org.exoplatform.ws.frameworks.cometd.ContinuationService;
+import org.exoplatform.ws.frameworks.cometd.LocalizableMessage;
 import org.quartz.InterruptableJob;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
@@ -72,8 +73,8 @@ public class DeleteShareJob implements Job, InterruptableJob{
       
       String calendarName = cal.getName();
       
-      String startMessage  = Utils.buildMessageToSend(Utils.START_UN_SHARE, calendarName, unSharedGroups, oService);
-      String stopMessage = Utils.buildMessageToSend(Utils.FINISH_UN_SHARE, calendarName, unSharedGroups, oService);
+      LocalizableMessage startMessage  = Utils.buildMessageToSend(Utils.START_UN_SHARE, calendarName, unSharedGroups, oService);
+      LocalizableMessage stopMessage = Utils.buildMessageToSend(Utils.FINISH_UN_SHARE, calendarName, unSharedGroups, oService);
       // send notification about un-sharing job
       continuation.sendMessage(username, Utils.SHARE_CAL_CHANEL, startMessage);
      
